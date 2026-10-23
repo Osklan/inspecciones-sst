@@ -24,7 +24,16 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "La app usa la cámara para tomar fotos de evidencia de las inspecciones.",
+          "photosPermission": "La app usa tus fotos para adjuntar evidencia a las inspecciones.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "scheme": "inspeccionessst",
     "experiments": {
