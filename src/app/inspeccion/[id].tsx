@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { exportarPdf } from "@/media/exportar";
 import { borrarFoto, tomarFoto } from "@/media/fotos";
+import { PanelFirma } from "@/ui/PanelFirma";
 import { SST_FO_070 } from "@/data/sstFo070";
 import { bloquesActivos, calcularResultado, generarPlanAccion, marcarNoAplica } from "@/domain/controlOperacional";
 import { tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
@@ -24,6 +25,7 @@ export default function Verificacion() {
   const [ins, setIns] = useState<Inspeccion | null>(null);
   const [bloque, setBloque] = useState(0);
   const [exportando, setExportando] = useState(false);
+  const [firmando, setFirmando] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { obtener(db, id).then(setIns); }, [db, id]);
@@ -102,7 +104,7 @@ export default function Verificacion() {
   const resBloque = (n: number) => res.bloques.find((x) => x.numero === n)!;
 
   return (
-    <ScrollView style={est.pantalla} contentContainerStyle={est.contenido} keyboardShouldPersistTaps="handled">
+    <ScrollView style={est.pantalla} contentContainerStyle={est.contenido} keyboardShouldPersistTaps="handled" scrollEnabled={!firmando}>
       <Stack.Screen options={{ title: tituloInspeccion(ins) }} />
 
       <View style={[est.tarjeta, res.ncPorCriticidad["Crítico"] ? { borderColor: color.rojo, backgroundColor: color.rojoFondo } : null]}>
@@ -201,6 +203,21 @@ export default function Verificacion() {
         <Text style={est.subtitulo}>Acciones tomadas en sitio</Text>
         <TextInput style={[est.input, { minHeight: 80 }]} multiline value={ins.accionesEnSitio} onChangeText={(v) => actualizar((x) => ({ ...x, accionesEnSitio: v }))} />
       </View>
+
+      <PanelFirma
+        titulo="Firma Profesional SST OINAC"
+        nombre={ins.encabezado.verificadoPor}
+        firma={ins.firmas?.oinac}
+        onFirmando={setFirmando}
+        onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, oinac: f } }))}
+      />
+      <PanelFirma
+        titulo="Firma Profesional SST contratista"
+        nombre={ins.encabezado.responsableContratista}
+        firma={ins.firmas?.contratista}
+        onFirmando={setFirmando}
+        onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, contratista: f } }))}
+      />
 
       <Pressable style={[est.boton, exportando && { opacity: 0.6 }]} disabled={exportando} onPress={exportar}>
         <Text style={est.botonTexto}>{exportando ? "Generando PDF…" : "Generar informe PDF y compartir"}</Text>

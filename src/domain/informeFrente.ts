@@ -3,7 +3,11 @@
 import { SST_FO_070, SST_FO_070_VERSION } from "../data/sstFo070";
 import { LOGO_OINAC_PNG_BASE64 } from "../data/logoOinac";
 import { bloquesActivos, calcularResultado, generarPlanAccion, marcarNoAplica } from "./controlOperacional";
+import { firmaSvg, firmaVacia, type Firma } from "./firma";
 import type { InspeccionFrente } from "./inspeccion";
+
+const celdaFirma = (f: Firma | undefined, cargo: string, nombre: string) =>
+  `<td class="firma">${firmaVacia(f) ? "<br><br>" : firmaSvg(f!)}<br>________________________________<br>${cargo}<br>${esc(nombre)}</td>`;
 
 const REFERENCIAS = [
   "Decreto 1072 de 2015 y Resolución 0312 de 2019 (SG-SST y gestión de contratistas).",
@@ -35,7 +39,7 @@ th { background: #153D63; color: #fff; }
 .ev td { width: 50%; }
 .ev .im { text-align: center; height: 200px; vertical-align: middle; }
 .ev img { max-height: 190px; max-width: 100%; }
-.firma { height: 60px; vertical-align: bottom; text-align: center; }
+.firma { width: 50%; height: 70px; vertical-align: bottom; text-align: center; }
 p { margin: 4px 0; text-align: justify; }
 `;
 
@@ -118,8 +122,7 @@ ${plan.length ? `<table><tr><th class="c">N°</th><th>Código</th><th>Ítem no c
 <p>${esc(ins.accionesEnSitio) || "Ninguna registrada."}</p>
 
 <div class="bar">5. FIRMAS</div>
-<table><tr><td class="firma">________________________________<br>Profesional SST OINAC<br>${esc(e.verificadoPor)}</td>
-<td class="firma">________________________________<br>Profesional SST contratista<br>${esc(e.responsableContratista)}</td></tr></table>
+<table><tr>${celdaFirma(ins.firmas?.oinac, "Profesional SST OINAC", e.verificadoPor)}${celdaFirma(ins.firmas?.contratista, "Profesional SST contratista", e.responsableContratista)}</tr></table>
 
 <div class="bar">6. REFERENCIAS NORMATIVAS</div>
 <ul>${REFERENCIAS.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>

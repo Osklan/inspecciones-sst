@@ -41,6 +41,14 @@ describe("informe del SST-FO-070", () => {
     expect(html).toContain("Foto no disponible");
   });
 
+  it("incluye las firmas dibujadas", () => {
+    const i = ejemplo();
+    i.firmas = { oinac: { trazos: ["M10 10 L50 40"], ancho: 300, alto: 160, fecha: 0 } };
+    const html = informeFrenteHtml(i);
+    expect(html).toContain('<path d="M10 10 L50 40"/>');
+    expect(html).toContain("Profesional SST contratista");
+  });
+
   it("arma un nombre de archivo sin tildes ni espacios", () => {
     const i = ejemplo();
     i.encabezado.contratista = "Construcciones Núñez S.A.S.";
