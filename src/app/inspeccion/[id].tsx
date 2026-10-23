@@ -2,7 +2,9 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { exportarPdf } from "@/media/exportar";
+import { borrarFoto, tomarFoto } from "@/media/fotos";
 import { SST_FO_070 } from "@/data/sstFo070";
 import { bloquesActivos, calcularResultado, generarPlanAccion, marcarNoAplica } from "@/domain/controlOperacional";
 import { tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
@@ -21,6 +23,7 @@ export default function Verificacion() {
   const db = useSQLiteContext();
   const [ins, setIns] = useState<Inspeccion | null>(null);
   const [bloque, setBloque] = useState(0);
+  const [exportando, setExportando] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { obtener(db, id).then(setIns); }, [db, id]);
@@ -48,6 +51,51 @@ export default function Verificacion() {
     actualizar((x) => ({ ...x, respuestas: { ...x.respuestas, [it.codigo]: { ...x.respuestas[it.codigo], resultado: r } } }));
     if (r === "NC" && it.criticidad === "Crítico") {
       Alert.alert("NC crítica", `${it.codigo}: detenga la tarea asociada hasta su corrección.`);
+    }
+  }
+
+  async function agregarFoto(it: ItemVerificacion, origen: "camara" | "galeria") {
+    try {
+      const uri = await tomarFoto(origen);
+      if (!uri) return;
+      actualizar((x) => {
+        const r = x.respuestas[it.codigo] ?? { resultado: "NC" as const };
+        return { ...x, respuestas: { ...x.respuestas, [it.codigo]: { ...r, fotos: [...(r.fotos ?? []), uri] } } };
+      });
+    } catch (e) {
+      Alert.alert("No se pudo agregar la foto", String((e as Error).message ?? e));
+    }
+  }
+
+  function quitarFoto(it: ItemVerificacion, uri: string) {
+    Alert.alert("Eliminar foto", "¿Quitar esta foto de la evidencia?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar", style: "destructive", onPress: () => {
+          actualizar((x) => {
+            const r = x.respuestas[it.codigo]!;
+            return { ...x, respuestas: { ...x.respuestas, [it.codigo]: { ...r, fotos: (r.fotos ?? []).filter((f) => f !== uri) } } };
+          });
+          borrarFoto(uri);
+        },
+      },
+    ]);
+  }
+
+  async function exportar() {
+    if (!ins) return;
+    if (res.sinDiligenciar) {
+      Alert.alert("Inspección incompleta", `Faltan ${res.sinDiligenciar} ítems por marcar. Complétalos antes de generar el informe.`);
+      return;
+    }
+    setExportando(true);
+    try {
+      await guardar(db, ins);
+      await exportarPdf(ins);
+    } catch (e) {
+      Alert.alert("No se pudo generar el PDF", String((e as Error).message ?? e));
+    } finally {
+      setExportando(false);
     }
   }
 
@@ -102,8 +150,30 @@ export default function Verificacion() {
                     multiline
                     placeholder="Hallazgo: qué se encontró, dónde y quién"
                     value={r.observacion ?? ""}
-                    onChangeText={(v) => actualizar((x) => ({ ...x, respuestas: { ...x.respuestas, [it.codigo]: { ...r, observacion: v } } }))}
+                    onChangeText={(v) => actualizar((x) => ({ ...x, respuestas: { ...x.respuestas, [it.codigo]: { ...x.respuestas[it.codigo]!, observacion: v } } }))}
                   />
+                )}
+                {r?.resultado === "NC" && (
+                  <View style={{ gap: 8 }}>
+                    {!!r.fotos?.length && (
+                      <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
+                        {r.fotos.map((f) => (
+                          <Pressable key={f} onLongPress={() => quitarFoto(it, f)}>
+                            <Image source={{ uri: f }} style={{ width: 96, height: 72, borderRadius: 6 }} />
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    )}
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <Pressable style={[est.input, { flex: 1, alignItems: "center" }]} onPress={() => agregarFoto(it, "camara")}>
+                        <Text style={est.texto}>📷 Tomar foto</Text>
+                      </Pressable>
+                      <Pressable style={[est.input, { flex: 1, alignItems: "center" }]} onPress={() => agregarFoto(it, "galeria")}>
+                        <Text style={est.texto}>Galería</Text>
+                      </Pressable>
+                    </View>
+                    {!!r.fotos?.length && <Text style={est.tenue}>Mantén presionada una foto para quitarla.</Text>}
+                  </View>
                 )}
               </View>
             );
@@ -131,6 +201,10 @@ export default function Verificacion() {
         <Text style={est.subtitulo}>Acciones tomadas en sitio</Text>
         <TextInput style={[est.input, { minHeight: 80 }]} multiline value={ins.accionesEnSitio} onChangeText={(v) => actualizar((x) => ({ ...x, accionesEnSitio: v }))} />
       </View>
+
+      <Pressable style={[est.boton, exportando && { opacity: 0.6 }]} disabled={exportando} onPress={exportar}>
+        <Text style={est.botonTexto}>{exportando ? "Generando PDF…" : "Generar informe PDF y compartir"}</Text>
+      </Pressable>
     </ScrollView>
   );
 }
