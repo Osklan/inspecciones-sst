@@ -1,6 +1,8 @@
 // Registro de una inspección guardada en el teléfono.
 import type { Respuestas } from "./controlOperacional";
 import type { Firma } from "./firma";
+import { LISTAS_LOCATIVAS } from "../data/listasLocativas";
+import { listaDe, nuevoPunto, objetivoPorDefecto, type InspeccionLocativa } from "./locativas";
 import type { TipoInspeccion } from "./tipos";
 
 export interface EncabezadoFrente {
@@ -30,7 +32,7 @@ export interface InspeccionFrente {
   firmas?: { oinac?: Firma; contratista?: Firma };
 }
 
-export type Inspeccion = InspeccionFrente;
+export type Inspeccion = InspeccionFrente | InspeccionLocativa;
 
 export const PROYECTO_POR_DEFECTO = "Ampliación y modernización Aeropuerto Internacional Rafael Núñez";
 
@@ -67,7 +69,36 @@ export function nuevaInspeccionFrente(anterior?: InspeccionFrente, ahora = new D
   };
 }
 
+export function nuevaInspeccionLocativa(listaId = LISTAS_LOCATIVAS[0].id, anterior?: InspeccionLocativa, ahora = new Date()): InspeccionLocativa {
+  const id = nuevoId(ahora.getTime());
+  const lista = listaDe({ listaId });
+  return {
+    id,
+    tipo: "locativas",
+    creado: ahora.getTime(),
+    actualizado: ahora.getTime(),
+    listaId,
+    encabezado: {
+      proyecto: anterior?.encabezado.proyecto ?? PROYECTO_POR_DEFECTO,
+      tipoInspeccion: "Planeada",
+      fecha: fechaIso(ahora),
+      area: "",
+      responsableArea: "",
+      elaboradoPor: anterior?.encabezado.elaboradoPor ?? "",
+      cargoElaboro: anterior?.encabezado.cargoElaboro ?? "Profesional SST",
+      revisadoPor: anterior?.encabezado.revisadoPor ?? "",
+      cargoReviso: anterior?.encabezado.cargoReviso ?? "Coordinador SST",
+    },
+    objetivo: objetivoPorDefecto(lista),
+    puntos: [nuevoPunto(`${id}-1`)],
+    resultados: "",
+    conclusiones: "",
+    recomendaciones: "",
+  };
+}
+
 export function tituloInspeccion(i: Inspeccion): string {
+  if (i.tipo === "locativas") return [listaDe(i).nombre, i.encabezado.area].filter(Boolean).join(" – ");
   const e = i.encabezado;
   return [e.contratista || "Sin contratista", e.ubicacion].filter(Boolean).join(" – ");
 }

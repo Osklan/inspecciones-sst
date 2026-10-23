@@ -1,0 +1,212 @@
+// Inspección de condiciones locativas: un punto a la vez (frente, sede), C / NC / NA por aspecto.
+import { Stack, useLocalSearchParams } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { exportarPdf } from "@/media/exportar";
+import { borrarFoto } from "@/media/fotos";
+import { tituloInspeccion } from "@/domain/inspeccion";
+import { calcularLocativa, listaDe, nuevoPunto, type InspeccionLocativa, type PuntoLocativo } from "@/domain/locativas";
+import type { RespuestaItem } from "@/domain/tipos";
+import { guardar, obtener } from "@/db/inspecciones";
+import { FotosEvidencia } from "@/ui/FotosEvidencia";
+import { OpcionesRespuesta } from "@/ui/OpcionesRespuesta";
+import { PanelFirma } from "@/ui/PanelFirma";
+import { color, est } from "@/ui/tema";
+
+const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)} %`);
+
+const TEXTOS_INFORME: [keyof Pick<InspeccionLocativa, "objetivo" | "resultados" | "conclusiones" | "recomendaciones">, string, string][] = [
+  ["objetivo", "Objetivo", ""],
+  ["resultados", "Resultados (texto)", "Resumen de lo encontrado. Las tablas de cumplimiento se agregan solas."],
+  ["conclusiones", "Conclusiones", "Una por línea."],
+  ["recomendaciones", "Recomendaciones", "Una por línea."],
+];
+
+export default function InspeccionLocativaPantalla() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const db = useSQLiteContext();
+  const [ins, setIns] = useState<InspeccionLocativa | null>(null);
+  const [sel, setSel] = useState(0);
+  const [exportando, setExportando] = useState(false);
+  const [firmando, setFirmando] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { obtener(db, id).then((x) => setIns(x?.tipo === "locativas" ? x : null)); }, [db, id]);
+
+  // Guardado automático medio segundo después del último cambio.
+  function actualizar(cambio: (x: InspeccionLocativa) => InspeccionLocativa) {
+    setIns((x) => {
+      if (!x) return x;
+      const n = cambio(x);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => guardar(db, n), 500);
+      return n;
+    });
+  }
+
+  const res = useMemo(() => (ins ? calcularLocativa(ins) : null), [ins]);
+  if (!ins || !res) return <View style={est.pantalla} />;
+  const lista = listaDe(ins);
+  const i = Math.min(sel, ins.puntos.length - 1);
+  const p = ins.puntos[i];
+  const rp = res.puntos[i];
+
+  const cambiarPunto = (cambio: (p: PuntoLocativo) => PuntoLocativo) =>
+    actualizar((x) => ({ ...x, puntos: x.puntos.map((q) => (q.id === p.id ? cambio(q) : q)) }));
+  const responder = (k: number, r: RespuestaItem) => cambiarPunto((q) => ({ ...q, respuestas: { ...q.respuestas, [k]: r } }));
+  const todoCumple = () =>
+    cambiarPunto((q) => ({ ...q, respuestas: Object.fromEntries(lista.aspectos.map((_, k) => [k, q.respuestas[k] ?? "C"])) }));
+
+  function agregarPunto() {
+    actualizar((x) => ({ ...x, puntos: [...x.puntos, nuevoPunto(`${x.id}-${Date.now().toString(36)}`)] }));
+    setSel(ins!.puntos.length);
+  }
+
+  function eliminarPunto() {
+    Alert.alert("Eliminar punto", `¿Eliminar «${p.nombre || `Punto ${i + 1}`}» y sus fotos?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar", style: "destructive", onPress: () => {
+          p.fotos.forEach(borrarFoto);
+          actualizar((x) => ({ ...x, puntos: x.puntos.filter((q) => q.id !== p.id) }));
+          setSel(Math.max(0, i - 1));
+        },
+      },
+    ]);
+  }
+
+  async function exportar() {
+    if (!ins) return;
+    const sinNombre = ins.puntos.findIndex((q) => !q.nombre.trim());
+    if (sinNombre >= 0) {
+      setSel(sinNombre);
+      Alert.alert("Falta el nombre", "Escribe el nombre de cada punto inspeccionado antes de generar el informe.");
+      return;
+    }
+    if (res!.total.sinMarcar) {
+      Alert.alert("Inspección incompleta", `Faltan ${res!.total.sinMarcar} aspectos por marcar. Complétalos antes de generar el informe.`);
+      return;
+    }
+    setExportando(true);
+    try {
+      await guardar(db, ins);
+      await exportarPdf(ins);
+    } catch (e) {
+      Alert.alert("No se pudo generar el PDF", String((e as Error).message ?? e));
+    } finally {
+      setExportando(false);
+    }
+  }
+
+  return (
+    <ScrollView style={est.pantalla} contentContainerStyle={est.contenido} keyboardShouldPersistTaps="handled" scrollEnabled={!firmando}>
+      <Stack.Screen options={{ title: tituloInspeccion(ins) }} />
+
+      <View style={[est.tarjeta, res.conHallazgo.length ? { borderColor: color.ambar, backgroundColor: color.ambarFondo } : null]}>
+        <Text style={est.subtitulo}>Resultado</Text>
+        <Text style={est.texto}>Cumplimiento: {pct(res.total.cumplimiento)}{res.calificacion ? ` · ${res.calificacion}` : ""}</Text>
+        <Text style={est.texto}>{res.resumen}</Text>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+        {ins.puntos.map((q, k) => {
+          const r = res.puntos[k];
+          return (
+            <Pressable key={q.id} onPress={() => setSel(k)} style={[est.input, { paddingVertical: 8, maxWidth: 180 }, k === i && { borderColor: color.azul, backgroundColor: color.tinte }]}>
+              <Text style={est.texto} numberOfLines={1}>
+                {q.nombre || `Punto ${k + 1}`}{r.sinMarcar ? ` (${r.sinMarcar})` : r.nc ? ` · ${r.nc} NC` : " ✓"}
+              </Text>
+            </Pressable>
+          );
+        })}
+        <Pressable onPress={agregarPunto} style={[est.input, { paddingVertical: 8 }]}>
+          <Text style={[est.texto, { color: color.azul, fontWeight: "700" }]}>+ Punto</Text>
+        </Pressable>
+      </ScrollView>
+
+      <View style={est.tarjeta}>
+        <Text style={est.etiqueta}>Punto inspeccionado {i + 1} de {ins.puntos.length}</Text>
+        <TextInput
+          style={est.input}
+          placeholder="Ej.: Contratista LEGGO – antiguo parqueadero nacional"
+          value={p.nombre}
+          onChangeText={(v) => cambiarPunto((q) => ({ ...q, nombre: v }))}
+        />
+        {rp.sinMarcar > 0 && (
+          <Pressable onPress={todoCumple} style={[est.input, { alignItems: "center" }]}>
+            <Text style={est.texto}>Marcar como C los {rp.sinMarcar} aspectos sin marcar</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {lista.aspectos.map((a, k) => (
+        <View key={k} style={est.tarjeta}>
+          <Text style={est.texto}>{a}</Text>
+          <OpcionesRespuesta valor={p.respuestas[k]} onElegir={(o) => responder(k, o)} />
+        </View>
+      ))}
+
+      {rp.nc > 0 && (
+        <View style={[est.tarjeta, { borderColor: color.rojo }]}>
+          <Text style={est.subtitulo}>Hallazgo</Text>
+          <Text style={est.etiqueta}>Qué se encontró</Text>
+          <TextInput
+            style={[est.input, { minHeight: 80 }]}
+            multiline
+            placeholder="Si lo dejas vacío, el informe lista los aspectos que no cumplen."
+            value={p.hallazgo}
+            onChangeText={(v) => cambiarPunto((q) => ({ ...q, hallazgo: v }))}
+          />
+          <Text style={est.etiqueta}>Riesgo asociado</Text>
+          <TextInput style={[est.input, { minHeight: 60 }]} multiline value={p.riesgo} onChangeText={(v) => cambiarPunto((q) => ({ ...q, riesgo: v }))} />
+          <Text style={est.etiqueta}>Acción recomendada</Text>
+          <TextInput style={[est.input, { minHeight: 60 }]} multiline value={p.accion} onChangeText={(v) => cambiarPunto((q) => ({ ...q, accion: v }))} />
+          <Text style={est.etiqueta}>Evidencia fotográfica</Text>
+          <FotosEvidencia fotos={p.fotos} onCambio={(cambio) => cambiarPunto((q) => ({ ...q, fotos: cambio(q.fotos) }))} />
+        </View>
+      )}
+
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {ins.puntos.length > 1 && (
+          <Pressable onPress={eliminarPunto} style={[est.input, { flex: 1, alignItems: "center" }]}>
+            <Text style={[est.texto, { color: color.rojo }]}>Eliminar punto</Text>
+          </Pressable>
+        )}
+        <Pressable onPress={i < ins.puntos.length - 1 ? () => setSel(i + 1) : agregarPunto} style={[est.boton, { flex: 2 }]}>
+          <Text style={est.botonTexto}>{i < ins.puntos.length - 1 ? "Siguiente punto →" : "+ Agregar otro punto"}</Text>
+        </Pressable>
+      </View>
+
+      <View style={est.tarjeta}>
+        <Text style={est.subtitulo}>Textos del informe</Text>
+        {TEXTOS_INFORME.map(([k, label, ayuda]) => (
+          <View key={k} style={{ gap: 4 }}>
+            <Text style={est.etiqueta}>{label}</Text>
+            {!!ayuda && <Text style={est.tenue}>{ayuda}</Text>}
+            <TextInput style={[est.input, { minHeight: 80 }]} multiline value={ins[k]} onChangeText={(v) => actualizar((x) => ({ ...x, [k]: v }))} />
+          </View>
+        ))}
+      </View>
+
+      <PanelFirma
+        titulo={`Elaboró – ${ins.encabezado.cargoElaboro}`}
+        nombre={ins.encabezado.elaboradoPor}
+        firma={ins.firmas?.elaboro}
+        onFirmando={setFirmando}
+        onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, elaboro: f } }))}
+      />
+      <PanelFirma
+        titulo={`Revisó – ${ins.encabezado.cargoReviso}`}
+        nombre={ins.encabezado.revisadoPor}
+        firma={ins.firmas?.reviso}
+        onFirmando={setFirmando}
+        onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, reviso: f } }))}
+      />
+
+      <Pressable style={[est.boton, exportando && { opacity: 0.6 }]} disabled={exportando} onPress={exportar}>
+        <Text style={est.botonTexto}>{exportando ? "Generando PDF…" : "Generar informe PDF y compartir"}</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
