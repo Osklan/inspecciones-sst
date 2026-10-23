@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "inspecciones-sst",
+    "name": "Inspecciones SST",
     "slug": "inspecciones-sst",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +16,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "co.oinac.inspeccionessst"
     },
     "web": {
       "favicon": "./assets/favicon.png"
