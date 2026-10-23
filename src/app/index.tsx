@@ -6,12 +6,18 @@ import { FlatList, Pressable, Text, View } from "react-native";
 import { SST_FO_070 } from "@/data/sstFo070";
 import { bloquesActivos, calcularResultado, marcarNoAplica } from "@/domain/controlOperacional";
 import { ETIQUETA_TIPO, tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
+import { calcularEquipos } from "@/domain/equipos";
 import { calcularLocativa } from "@/domain/locativas";
 import { listar } from "@/db/inspecciones";
 import { rutaInspeccion } from "@/ui/rutas";
 import { color, est } from "@/ui/tema";
 
 function resumen(i: Inspeccion): { cumplimiento: number | null; pendientes: number; alerta: string | null } {
+  if (i.tipo === "equipos") {
+    const r = calcularEquipos(i);
+    const aptos = r.total - r.sinResultado;
+    return { cumplimiento: aptos ? r.porResultado.Apto / aptos : null, pendientes: r.sinResultado, alerta: r.hallazgos.length ? r.resumen : null };
+  }
   if (i.tipo === "locativas") {
     const r = calcularLocativa(i);
     return { cumplimiento: r.total.cumplimiento, pendientes: r.total.sinMarcar, alerta: r.conHallazgo.length ? r.resumen : null };

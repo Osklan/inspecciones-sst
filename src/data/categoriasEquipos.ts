@@ -16,6 +16,8 @@ export interface CategoriaEquipo {
   aspectos: string[];
   /** Componentes del kit (solo formato «kit»). */
   componentes?: string[];
+  /** Meses de vigencia de la prueba o inspección anual; pasado ese plazo se alerta. */
+  vigenciaMeses?: number;
 }
 
 const ASPECTOS_GENERALES = [
@@ -64,6 +66,6 @@ export const CATEGORIAS_EQUIPOS: CategoriaEquipo[] = [
   },
   { id: "traje-arco", nombre: "Trajes de protección para arco eléctrico", formato: "condicion", aspectos: ASPECTOS_GENERALES },
   { id: "careta-arco", nombre: "Caretas anti arco eléctrico", formato: "condicion", aspectos: ASPECTOS_GENERALES },
-  { id: "guantes-dielectricos", nombre: "Guantes dieléctricos", formato: "certificado", aspectos: ASPECTOS_GENERALES },
-  { id: "pertigas-alfombras", nombre: "Pértigas y alfombra dieléctrica", formato: "inspeccionAnual", aspectos: ASPECTOS_GENERALES },
+  { id: "guantes-dielectricos", nombre: "Guantes dieléctricos", formato: "certificado", aspectos: ASPECTOS_GENERALES, vigenciaMeses: 6 },
+  { id: "pertigas-alfombras", nombre: "Pértigas y alfombra dieléctrica", formato: "inspeccionAnual", aspectos: ASPECTOS_GENERALES, vigenciaMeses: 12 },
 ];

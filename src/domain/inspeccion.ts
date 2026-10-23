@@ -2,6 +2,7 @@
 import type { Respuestas } from "./controlOperacional";
 import type { Firma } from "./firma";
 import { LISTAS_LOCATIVAS } from "../data/listasLocativas";
+import { categoria, copiarSecciones, nuevoEquipo, objetivoEquipos, type InspeccionEquipos } from "./equipos";
 import { listaDe, nuevoPunto, objetivoPorDefecto, type InspeccionLocativa } from "./locativas";
 import type { TipoInspeccion } from "./tipos";
 
@@ -32,7 +33,7 @@ export interface InspeccionFrente {
   firmas?: { oinac?: Firma; contratista?: Firma };
 }
 
-export type Inspeccion = InspeccionFrente | InspeccionLocativa;
+export type Inspeccion = InspeccionFrente | InspeccionLocativa | InspeccionEquipos;
 
 export const PROYECTO_POR_DEFECTO = "Ampliación y modernización Aeropuerto Internacional Rafael Núñez";
 
@@ -97,7 +98,41 @@ export function nuevaInspeccionLocativa(listaId = LISTAS_LOCATIVAS[0].id, anteri
   };
 }
 
+/**
+ * @param categorias Categorías a inspeccionar. Si hay una inspección anterior y `copiar` es true,
+ * se parte de sus equipos (sin resultados) para las categorías que coincidan.
+ */
+export function nuevaInspeccionEquipos(categorias: string[], anterior?: InspeccionEquipos, copiar = true, ahora = new Date()): InspeccionEquipos {
+  const id = nuevoId(ahora.getTime());
+  const previas = copiar && anterior ? copiarSecciones(anterior.secciones.filter((s) => categorias.includes(s.categoriaId)), id) : [];
+  const secciones = categorias.map(
+    (c, k) => previas.find((s) => s.categoriaId === c) ?? { categoriaId: c, texto: "", laboratorio: "", equipos: [nuevoEquipo(`${id}-n${k}`, categoria(c))] },
+  );
+  return {
+    id,
+    tipo: "equipos",
+    creado: ahora.getTime(),
+    actualizado: ahora.getTime(),
+    encabezado: {
+      proyecto: anterior?.encabezado.proyecto ?? PROYECTO_POR_DEFECTO,
+      tipoInspeccion: anterior?.encabezado.tipoInspeccion ?? "Planeada – Mensual",
+      fecha: fechaIso(ahora),
+      area: anterior?.encabezado.area ?? "",
+      responsableArea: anterior?.encabezado.responsableArea ?? "",
+      elaboradoPor: anterior?.encabezado.elaboradoPor ?? "",
+      cargoElaboro: anterior?.encabezado.cargoElaboro ?? "Profesional SST",
+      revisadoPor: anterior?.encabezado.revisadoPor ?? "",
+      cargoReviso: anterior?.encabezado.cargoReviso ?? "Coordinador SST",
+    },
+    objetivo: objetivoEquipos(secciones),
+    secciones,
+    conclusiones: "",
+    recomendaciones: "",
+  };
+}
+
 export function tituloInspeccion(i: Inspeccion): string {
+  if (i.tipo === "equipos") return ["Equipos y EPP", i.encabezado.area].filter(Boolean).join(" – ");
   if (i.tipo === "locativas") return [listaDe(i).nombre, i.encabezado.area].filter(Boolean).join(" – ");
   const e = i.encabezado;
   return [e.contratista || "Sin contratista", e.ubicacion].filter(Boolean).join(" – ");
