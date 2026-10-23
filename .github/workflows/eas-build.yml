@@ -1,0 +1,40 @@
+# Compila la app en EAS (Expo) y deja un APK de prueba para instalar en Android.
+# Se ejecuta al subir una etiqueta v* (por ejemplo v0.1.0) o a mano desde la pestaña Actions.
+# Requiere el secreto EXPO_TOKEN (token de acceso de expo.dev) en el repositorio.
+name: EAS Build Android
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      perfil:
+        description: "Perfil de eas.json (preview = APK de prueba, production = Play Store)"
+        default: preview
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Revisar el secreto EXPO_TOKEN
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Falta el secreto EXPO_TOKEN en Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - run: npm test
+      # La primera vez crea el proyecto en expo.dev; después solo lo enlaza.
+      - run: eas init --non-interactive --force
+      - run: eas build --platform android --profile ${{ inputs.perfil || 'preview' }} --non-interactive
