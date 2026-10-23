@@ -1,11 +1,13 @@
 # Compila la app en EAS (Expo) y deja un APK de prueba para instalar en Android.
-# Se ejecuta al subir una etiqueta v* (por ejemplo v0.1.0) o a mano desde la pestaña Actions.
+# Se ejecuta al subir una etiqueta v* (por ejemplo v0.1.0), al subir una rama compilar/*
+# o a mano desde la pestaña Actions.
 # Requiere el secreto EXPO_TOKEN (token de acceso de expo.dev) en el repositorio.
 name: EAS Build Android
 
 on:
   push:
     tags: ["v*"]
+    branches: ["compilar/**"]
   workflow_dispatch:
     inputs:
       perfil:
