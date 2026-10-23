@@ -1,13 +1,9 @@
 // HTML del informe del SST-FO-070, con el formato de los informes de OINAC.
 // El PDF se genera a partir de este HTML con expo-print.
 import { SST_FO_070, SST_FO_070_VERSION } from "../data/sstFo070";
-import { LOGO_OINAC_PNG_BASE64 } from "../data/logoOinac";
 import { bloquesActivos, calcularResultado, generarPlanAccion, marcarNoAplica } from "./controlOperacional";
-import { firmaSvg, firmaVacia, type Firma } from "./firma";
+import { cabecera, celdaFirma, CSS, esc, fecha, filasEvidencias, limpio } from "./informeComun";
 import type { InspeccionFrente } from "./inspeccion";
-
-const celdaFirma = (f: Firma | undefined, cargo: string, nombre: string) =>
-  `<td class="firma">${firmaVacia(f) ? "<br><br>" : firmaSvg(f!)}<br>________________________________<br>${cargo}<br>${esc(nombre)}</td>`;
 
 const REFERENCIAS = [
   "Decreto 1072 de 2015 y Resolución 0312 de 2019 (SG-SST y gestión de contratistas).",
@@ -17,31 +13,7 @@ const REFERENCIAS = [
   "NFPA 51B (trabajos en caliente) y OSHA 1926 Subparte P (excavaciones), como referencias técnicas complementarias.",
 ];
 
-export const esc = (s: unknown) =>
-  String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-
-const fecha = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split("-").reverse().join("/") : iso);
 const pct = (x: number | null) => (x === null ? "No evaluado" : `${Math.round(x * 100)} %`);
-
-const CSS = `
-@page { size: letter; margin: 18mm 16mm; }
-body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #000; }
-table { width: 100%; border-collapse: collapse; margin: 4px 0; page-break-inside: auto; }
-tr { page-break-inside: avoid; }
-td, th { border: 1px solid #808080; padding: 4px 6px; vertical-align: top; text-align: left; }
-th { background: #153D63; color: #fff; }
-.lbl { background: #D9E2F3; font-weight: bold; width: 22%; }
-.bar { page-break-after: avoid; background: #1F3864; color: #fff; font-weight: bold; padding: 2px 6px; margin: 14px 0 6px; }
-.ttl { color: #1F3864; font-weight: bold; font-size: 15px; text-align: center; vertical-align: middle; }
-.c { text-align: center; }
-.crit { color: #B42318; font-weight: bold; }
-.dec { font-weight: bold; font-size: 12px; }
-.ev td { width: 50%; }
-.ev .im { text-align: center; height: 200px; vertical-align: middle; }
-.ev img { max-height: 190px; max-width: 100%; }
-.firma { width: 50%; height: 70px; vertical-align: bottom; text-align: center; }
-p { margin: 4px 0; text-align: justify; }
-`;
 
 /** @param fotos Mapa de URI de foto → contenido JPEG en base64. */
 export function informeFrenteHtml(ins: InspeccionFrente, fotos: Record<string, string> = {}): string {
@@ -73,26 +45,16 @@ export function informeFrenteHtml(ins: InspeccionFrente, fotos: Record<string, s
     .map((p, i) => `<tr><td class="c">${i + 1}</td><td>${p.codigo}</td><td>${esc(p.item)}</td><td class="${p.criticidad === "Crítico" ? "crit" : ""}">${p.criticidad}</td><td>${esc(p.hallazgo)}${evRef(p.codigo)}</td><td class="c">${fecha(p.fechaLimite)}</td></tr>`)
     .join("");
 
-  // Dos evidencias por fila, como en el anexo de los informes: título, foto y descripción.
-  const celdasEv = evidencias.map((x) => {
-    const b64 = fotos[x.uri];
-    const img = b64 ? `<img src="data:image/jpeg;base64,${b64}">` : "<i>Foto no disponible</i>";
-    return [
-      `<td><b>EVIDENCIA N° ${x.n}</b></td>`,
-      `<td class="im">${img}</td>`,
-      `<td><b>Descripción:</b> ${x.codigo} – ${esc(items.get(x.codigo)?.criterio ?? "")}${x.hallazgo ? ` ${esc(x.hallazgo)}` : ""}</td>`,
-    ];
-  });
-  const vacia = ["<td></td>", "<td></td>", "<td></td>"];
-  let filasEv = "";
-  for (let i = 0; i < celdasEv.length; i += 2) {
-    const a = celdasEv[i], b = celdasEv[i + 1] ?? vacia;
-    filasEv += a.map((c, k) => `<tr>${c}${b[k]}</tr>`).join("");
-  }
+  const filasEv = filasEvidencias(
+    evidencias.map((x) => ({
+      n: x.n,
+      b64: fotos[x.uri],
+      descripcion: `${x.codigo} – ${esc(items.get(x.codigo)?.criterio ?? "")}${x.hallazgo ? ` ${esc(x.hallazgo)}` : ""}`,
+    })),
+  );
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
-<table><tr><td style="width:22%;text-align:center;vertical-align:middle"><img src="data:image/png;base64,${LOGO_OINAC_PNG_BASE64}" style="width:120px"></td>
-<td class="ttl">CONTROL OPERACIONAL DE CONTRATISTAS<br><span style="font-size:11px">SST-FO-070 ${SST_FO_070_VERSION} – Verificación técnica en campo</span></td></tr></table>
+${cabecera("CONTROL OPERACIONAL DE CONTRATISTAS", `SST-FO-070 ${SST_FO_070_VERSION} – Verificación técnica en campo`)}
 
 <div class="bar">1. INFORMACIÓN GENERAL</div>
 <table>
@@ -132,6 +94,7 @@ ${evidencias.length ? `<div class="bar" style="page-break-before:always">7. ANEX
 }
 
 export function nombreArchivoInforme(ins: InspeccionFrente): string {
-  const limpio = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
   return `SST-FO-070_${limpio(ins.encabezado.contratista) || "Contratista"}_${ins.encabezado.fecha}.pdf`;
 }
+
+export { esc } from "./informeComun";

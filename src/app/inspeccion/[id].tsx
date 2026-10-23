@@ -2,36 +2,34 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { exportarPdf } from "@/media/exportar";
-import { borrarFoto, tomarFoto } from "@/media/fotos";
+import { FotosEvidencia } from "@/ui/FotosEvidencia";
+import { OpcionesRespuesta } from "@/ui/OpcionesRespuesta";
 import { PanelFirma } from "@/ui/PanelFirma";
 import { SST_FO_070 } from "@/data/sstFo070";
 import { bloquesActivos, calcularResultado, generarPlanAccion, marcarNoAplica } from "@/domain/controlOperacional";
-import { tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
+import { tituloInspeccion, type InspeccionFrente } from "@/domain/inspeccion";
 import type { Criticidad, ItemVerificacion, RespuestaItem } from "@/domain/tipos";
 import { guardar, obtener } from "@/db/inspecciones";
 import { color, est } from "@/ui/tema";
 
 const COLOR_CRIT: Record<Criticidad, string> = { "Crítico": color.rojo, Mayor: color.ambar, Menor: color.tenue };
-const OPCIONES: RespuestaItem[] = ["C", "NC", "NA"];
-const fondoOpcion = (r: RespuestaItem) => (r === "C" ? color.verdeFondo : r === "NC" ? color.rojoFondo : color.tinte);
-const tintaOpcion = (r: RespuestaItem) => (r === "C" ? color.verde : r === "NC" ? color.rojo : color.tinta);
 const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)} %`);
 
 export default function Verificacion() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
-  const [ins, setIns] = useState<Inspeccion | null>(null);
+  const [ins, setIns] = useState<InspeccionFrente | null>(null);
   const [bloque, setBloque] = useState(0);
   const [exportando, setExportando] = useState(false);
   const [firmando, setFirmando] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => { obtener(db, id).then(setIns); }, [db, id]);
+  useEffect(() => { obtener(db, id).then((x) => setIns(x?.tipo === "frentes" ? x : null)); }, [db, id]);
 
   // Guardado automático medio segundo después del último cambio.
-  function actualizar(cambio: (x: Inspeccion) => Inspeccion) {
+  function actualizar(cambio: (x: InspeccionFrente) => InspeccionFrente) {
     setIns((x) => {
       if (!x) return x;
       const n = cambio(x);
@@ -54,34 +52,6 @@ export default function Verificacion() {
     if (r === "NC" && it.criticidad === "Crítico") {
       Alert.alert("NC crítica", `${it.codigo}: detenga la tarea asociada hasta su corrección.`);
     }
-  }
-
-  async function agregarFoto(it: ItemVerificacion, origen: "camara" | "galeria") {
-    try {
-      const uri = await tomarFoto(origen);
-      if (!uri) return;
-      actualizar((x) => {
-        const r = x.respuestas[it.codigo] ?? { resultado: "NC" as const };
-        return { ...x, respuestas: { ...x.respuestas, [it.codigo]: { ...r, fotos: [...(r.fotos ?? []), uri] } } };
-      });
-    } catch (e) {
-      Alert.alert("No se pudo agregar la foto", String((e as Error).message ?? e));
-    }
-  }
-
-  function quitarFoto(it: ItemVerificacion, uri: string) {
-    Alert.alert("Eliminar foto", "¿Quitar esta foto de la evidencia?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar", style: "destructive", onPress: () => {
-          actualizar((x) => {
-            const r = x.respuestas[it.codigo]!;
-            return { ...x, respuestas: { ...x.respuestas, [it.codigo]: { ...r, fotos: (r.fotos ?? []).filter((f) => f !== uri) } } };
-          });
-          borrarFoto(uri);
-        },
-      },
-    ]);
   }
 
   async function exportar() {
@@ -136,16 +106,7 @@ export default function Verificacion() {
                 <Text style={[est.etiqueta, { color: COLOR_CRIT[it.criticidad] }]}>{it.codigo} · {it.criticidad}</Text>
                 <Text style={est.texto}>{it.criterio}</Text>
                 <Text style={est.tenue}>Evidencia: {it.evidencia}</Text>
-                <View style={{ flexDirection: "row", gap: 8 }}>
-                  {OPCIONES.map((o) => {
-                    const sel = r?.resultado === o;
-                    return (
-                      <Pressable key={o} onPress={() => responder(it, o)} style={[est.input, { flex: 1, alignItems: "center" }, sel && { backgroundColor: fondoOpcion(o), borderColor: tintaOpcion(o) }]}>
-                        <Text style={[est.texto, { fontWeight: "700", color: sel ? tintaOpcion(o) : color.tinta }]}>{o}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                <OpcionesRespuesta valor={r?.resultado} onElegir={(o) => responder(it, o)} />
                 {r?.resultado === "NC" && (
                   <TextInput
                     style={[est.input, { minHeight: 60 }]}
@@ -156,26 +117,15 @@ export default function Verificacion() {
                   />
                 )}
                 {r?.resultado === "NC" && (
-                  <View style={{ gap: 8 }}>
-                    {!!r.fotos?.length && (
-                      <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
-                        {r.fotos.map((f) => (
-                          <Pressable key={f} onLongPress={() => quitarFoto(it, f)}>
-                            <Image source={{ uri: f }} style={{ width: 96, height: 72, borderRadius: 6 }} />
-                          </Pressable>
-                        ))}
-                      </ScrollView>
-                    )}
-                    <View style={{ flexDirection: "row", gap: 8 }}>
-                      <Pressable style={[est.input, { flex: 1, alignItems: "center" }]} onPress={() => agregarFoto(it, "camara")}>
-                        <Text style={est.texto}>📷 Tomar foto</Text>
-                      </Pressable>
-                      <Pressable style={[est.input, { flex: 1, alignItems: "center" }]} onPress={() => agregarFoto(it, "galeria")}>
-                        <Text style={est.texto}>Galería</Text>
-                      </Pressable>
-                    </View>
-                    {!!r.fotos?.length && <Text style={est.tenue}>Mantén presionada una foto para quitarla.</Text>}
-                  </View>
+                  <FotosEvidencia
+                    fotos={r.fotos ?? []}
+                    onCambio={(cambio) =>
+                      actualizar((x) => {
+                        const ry = x.respuestas[it.codigo] ?? { resultado: "NC" as const };
+                        return { ...x, respuestas: { ...x.respuestas, [it.codigo]: { ...ry, fotos: cambio(ry.fotos ?? []) } } };
+                      })
+                    }
+                  />
                 )}
               </View>
             );
