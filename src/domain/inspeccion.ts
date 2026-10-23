@@ -1,5 +1,6 @@
 // Registro de una inspección guardada en el teléfono.
 import type { Respuestas } from "./controlOperacional";
+import type { Firma } from "./firma";
 import type { TipoInspeccion } from "./tipos";
 
 export interface EncabezadoFrente {
@@ -26,6 +27,7 @@ export interface InspeccionFrente {
   actividadesCriticas: string[];
   respuestas: Respuestas;
   accionesEnSitio: string;
+  firmas?: { oinac?: Firma; contratista?: Firma };
 }
 
 export type Inspeccion = InspeccionFrente;
