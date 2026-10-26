@@ -6,7 +6,7 @@ import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-nativ
 import type { Documento } from "@/media/exportar";
 import { borrarFoto } from "@/media/fotos";
 import { tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
-import { calcularLocativa, grupoEn, listaDe, nuevoPunto, type InspeccionLocativa, type PuntoLocativo } from "@/domain/locativas";
+import { calcularLocativa, firmasDePunto, grupoEn, listaDe, numeroEn, nuevoPunto, type InspeccionLocativa, type PuntoLocativo } from "@/domain/locativas";
 import type { RespuestaItem } from "@/domain/tipos";
 import { guardar, obtener } from "@/db/inspecciones";
 import { FotosEvidencia } from "@/ui/FotosEvidencia";
@@ -122,10 +122,34 @@ export default function InspeccionLocativaPantalla() {
         <Text style={est.etiqueta}>Punto inspeccionado {i + 1} de {ins.puntos.length}</Text>
         <TextInput
           style={est.input}
-          placeholder="Ej.: Contratista LEGGO – antiguo parqueadero nacional"
+          placeholder={lista.firmasPunto ? "Nombre de la concesión" : "Ej.: Contratista LEGGO – antiguo parqueadero nacional"}
           value={p.nombre}
           onChangeText={(v) => cambiarPunto((q) => ({ ...q, nombre: v }))}
         />
+        {lista.camposPunto?.map((c) => {
+          const valor = p.campos?.[c.id] ?? "";
+          const poner = (v: string) => cambiarPunto((q) => ({ ...q, campos: { ...q.campos, [c.id]: v } }));
+          if (!c.opciones) return (
+            <View key={c.id} style={{ gap: 4 }}>
+              <Text style={est.etiqueta}>{c.etiqueta}</Text>
+              <TextInput style={est.input} value={valor} onChangeText={poner} />
+            </View>
+          );
+          const marcados = valor.split(",").map((x) => x.trim()).filter(Boolean);
+          const alternar = (o: string) => poner((marcados.includes(o) ? marcados.filter((x) => x !== o) : [...marcados, o]).join(", "));
+          return (
+            <View key={c.id} style={{ gap: 4 }}>
+              <Text style={est.etiqueta}>{c.etiqueta}</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                {c.opciones.map((o) => (
+                  <Pressable key={o} onPress={() => alternar(o)} style={[est.input, { paddingVertical: 6 }, marcados.includes(o) && { borderColor: color.azul, backgroundColor: color.tinte }]}>
+                    <Text style={est.texto}>{marcados.includes(o) ? "☑ " : "☐ "}{o}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          );
+        })}
         {rp.sinMarcar > 0 && (
           <Pressable onPress={todoCumple} style={[est.input, { alignItems: "center" }]}>
             <Text style={est.texto}>Marcar como C los {rp.sinMarcar} aspectos sin marcar</Text>
@@ -137,7 +161,7 @@ export default function InspeccionLocativaPantalla() {
         <View key={k} style={{ gap: 8 }}>
           {grupoEn(lista, k) && <Text style={[est.subtitulo, { marginTop: 4 }]}>{grupoEn(lista, k)}</Text>}
           <View style={est.tarjeta}>
-            <Text style={est.texto}>{a}</Text>
+            <Text style={est.texto}>{lista.numeros ? `${numeroEn(lista, k)}. ` : ""}{a}</Text>
             <OpcionesRespuesta valor={p.respuestas[k]} onElegir={(o) => responder(k, o)} />
             {p.respuestas[k] === "NC" && (
               <TextInput
@@ -170,6 +194,17 @@ export default function InspeccionLocativaPantalla() {
           <FotosEvidencia fotos={p.fotos} onCambio={(cambio) => cambiarPunto((q) => ({ ...q, fotos: cambio(q.fotos) }))} />
         </View>
       )}
+
+      {firmasDePunto(lista, p).map((f) => (
+        <PanelFirma
+          key={f.id}
+          titulo={`${f.rol} – ${p.nombre || `Punto ${i + 1}`}${f.id === "inspector" ? " (si no firmas aquí, se usa la firma de Elaboró)" : ""}`}
+          nombre={f.nombre || (f.id === "inspector" ? ins.encabezado.elaboradoPor : "")}
+          firma={f.firma}
+          onFirmando={setFirmando}
+          onCambio={(x) => cambiarPunto((q) => ({ ...q, firmas: { ...q.firmas, [f.id]: x } }))}
+        />
+      ))}
 
       <View style={{ flexDirection: "row", gap: 8 }}>
         {ins.puntos.length > 1 && (

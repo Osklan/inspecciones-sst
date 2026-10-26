@@ -13,6 +13,12 @@ export interface ListaLocativa {
   aspectos: string[];
   /** Subtítulos de la lista: cada uno empieza en el aspecto con índice `desde`. */
   grupos?: { titulo: string; desde: number }[];
+  /** Número del ítem en el formato, por aspecto, cuando el formato no los numera seguido. */
+  numeros?: number[];
+  /** Datos que se piden en cada punto; con `opciones` se marcan una o varias. */
+  camposPunto?: { id: string; etiqueta: string; opciones?: string[] }[];
+  /** Firmas que se toman en cada punto; `campo` es el dato del punto con el nombre de quien firma. */
+  firmasPunto?: { id: string; rol: string; campo?: string }[];
   normas: { aspecto: string; requisito: string; fuente: string }[];
 }
 
@@ -110,6 +116,69 @@ export const LISTAS_LOCATIVAS: ListaLocativa[] = [
       { titulo: "Emergencias", desde: 5 },
       { titulo: "Tránsito", desde: 8 },
       { titulo: "Punto de encuentro", desde: 11 },
+    ],
+    normas: [],
+  },
+  {
+    // Formato SST-FO-086 V01 «Formato de inspección integral a concesiones». Cada punto es una concesión.
+    id: "concesiones",
+    nombre: "Concesiones",
+    validada: true,
+    formato: "SST-FO-086 V01",
+    objetivo: "Verificar de forma integral las condiciones de seguridad de las concesiones: botiquín, extintores, instalaciones eléctricas, señalización, sustancias químicas, orden y condiciones locativas, y el conocimiento del personal sobre el plan de evacuación y los procedimientos SST básicos.",
+    aspectos: [
+      "Botiquín Clase A disponible",
+      "Insumos completos",
+      "Insumos vigentes",
+      "Botiquín accesible y señalizado",
+      "Extintor presurizado",
+      "Señalización visible",
+      "Tarjeta de inspección vigente",
+      "Extintor no obstruido",
+      "Fácil acceso",
+      "Personal capacitado en uso",
+      "Canalizaciones y conexiones seguras",
+      "Tomacorrientes en buen estado",
+      "Interruptores funcionales",
+      "No existen empalmes improvisados",
+      "No uso de extensiones inseguras",
+      "Rutas de evacuación señalizadas",
+      "Rutas despejadas",
+      "Señalización de riesgos visible",
+      "Sustancias correctamente rotuladas",
+      "Almacenamiento en área definida (productos de aseo)",
+      "Fichas técnicas disponibles (si aplica)",
+      "Orden general del área",
+      "Cada cosa en su lugar",
+      "Clasificación de residuos",
+      "Pintura en buen estado",
+      "Paredes en buen estado",
+      "Techos en buen estado",
+      "Pisos en buen estado",
+      "Conoce el Plan de Evacuación",
+      "Conoce procedimientos SST básicos",
+    ],
+    numeros: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 25, 26, 32, 33, 34, 35, 37, 38],
+    grupos: [
+      { titulo: "2.1 Botiquín de primeros auxilios (Clase A)", desde: 0 },
+      { titulo: "2.2 Extintores", desde: 4 },
+      { titulo: "2.3 Instalaciones eléctricas", desde: 10 },
+      { titulo: "2.4 Señalización de seguridad", desde: 15 },
+      { titulo: "2.5 SGA – Sustancias químicas", desde: 18 },
+      { titulo: "2.8 Condiciones locativas", desde: 24 },
+      { titulo: "3. Verificación de conocimiento al personal", desde: 28 },
+    ],
+    camposPunto: [
+      { id: "hora", etiqueta: "Hora inicio" },
+      { id: "tipo", etiqueta: "Tipo de inspección", opciones: ["MTT", "Ambiental", "SST", "Comercial", "Bombero"] },
+      { id: "bombero", etiqueta: "Representante Bombero" },
+      { id: "sst", etiqueta: "Representante SST" },
+      { id: "responsable", etiqueta: "Nombre responsable del área" },
+    ],
+    firmasPunto: [
+      { id: "inspector", rol: "Inspector SST", campo: "sst" },
+      { id: "bombero", rol: "Bombero", campo: "bombero" },
+      { id: "responsable", rol: "Responsable del área", campo: "responsable" },
     ],
     normas: [],
   },

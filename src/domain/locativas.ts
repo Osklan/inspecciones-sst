@@ -20,6 +20,10 @@ export interface PuntoLocativo {
   riesgo: string;
   accion: string;
   fotos: string[];
+  /** Datos del punto que pide la lista (`camposPunto`), por id. */
+  campos?: Record<string, string>;
+  /** Firmas del punto que pide la lista (`firmasPunto`), por id. */
+  firmas?: Record<string, Firma | undefined>;
 }
 
 export interface EncabezadoLocativa {
@@ -134,3 +138,10 @@ export function periodo(fechaIso: string): string {
 
 /** Subtítulo que empieza en el aspecto `i`, si lo hay. */
 export const grupoEn = (lista: ListaLocativa, i: number) => lista.grupos?.find((g) => g.desde === i)?.titulo;
+
+/** Número del aspecto `i` en el formato. */
+export const numeroEn = (lista: ListaLocativa, i: number) => lista.numeros?.[i] ?? i + 1;
+
+/** Firmas del punto que pide la lista, con el nombre de quien firma. */
+export const firmasDePunto = (lista: ListaLocativa, p: PuntoLocativo) =>
+  (lista.firmasPunto ?? []).map((f) => ({ ...f, nombre: f.campo ? p.campos?.[f.campo] ?? "" : "", firma: p.firmas?.[f.id] }));

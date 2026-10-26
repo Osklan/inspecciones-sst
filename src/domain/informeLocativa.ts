@@ -1,5 +1,5 @@
 // HTML del informe de condiciones locativas, con el formato del informe de baños CCNC.
-import { calcularLocativa, listaDe, periodo, type InspeccionLocativa } from "./locativas";
+import { calcularLocativa, firmasDePunto, listaDe, periodo, type InspeccionLocativa } from "./locativas";
 import { cabecera, CSS, esc, fecha, filasEvidencias, limpio, parrafos, tablaDatosGenerales, tablaFirmas, vinetas, type CeldaFirma } from "./informeComun";
 
 const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)} %`);
@@ -97,6 +97,9 @@ ${evidencias.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-b
 export const firmasInforme = (ins: InspeccionLocativa): CeldaFirma[] => [
   { firma: ins.firmas?.elaboro, cargo: `Elaboró – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
   { firma: ins.firmas?.reviso, cargo: `Revisó – ${ins.encabezado.cargoReviso}`, nombre: ins.encabezado.revisadoPor },
+  ...ins.puntos.flatMap((p, i) =>
+    firmasDePunto(listaDe(ins), p).filter((f) => f.id !== "inspector" || f.firma).map((f) => ({ firma: f.firma, cargo: `${f.rol} – ${p.nombre || `Punto ${i + 1}`}`, nombre: f.nombre })),
+  ),
 ];
 
 export function nombreArchivoLocativa(ins: InspeccionLocativa): string {

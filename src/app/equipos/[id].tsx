@@ -7,7 +7,9 @@ import type { CategoriaEquipo, FormatoTabla } from "@/data/categoriasEquipos";
 import type { Documento } from "@/media/exportar";
 import { borrarFoto } from "@/media/fotos";
 import {
+  aspectosDe,
   aspectosSinMarcar,
+  tipoDe,
   calcularEquipos,
   categoria,
   faltantes,
@@ -31,7 +33,7 @@ import { BotonesExportar } from "@/ui/BotonesExportar";
 import { PanelFirma } from "@/ui/PanelFirma";
 import { color, est } from "@/ui/tema";
 
-type Campo = keyof Pick<Equipo, "titular" | "elemento" | "marca" | "serial" | "condicion" | "fechaPrueba" | "codigoPrueba">;
+type Campo = keyof Pick<Equipo, "titular" | "elemento" | "marca" | "serial" | "condicion" | "fechaPrueba" | "codigoPrueba" | "interno" | "fabricacion" | "ultimoLavado" | "proximoLavado">;
 
 // Campos que se piden según el formato de la tabla del informe.
 const CAMPOS: Record<FormatoTabla, [Campo, string][]> = {
@@ -264,8 +266,24 @@ interface TarjetaProps {
 function TarjetaEquipo({ n, e, cat, fechaInspeccion, abierto, onAbrir, onCambio, onDuplicar, onEliminar }: TarjetaProps) {
   const vig = vigencia(e, cat, fechaInspeccion);
   const falta = faltantes(e, cat);
-  const pendientes = cat.aspectos.filter((_, k) => !e.aspectos?.[k]).length;
+  const aspectos = aspectosDe(e, cat);
+  const pendientes = aspectos.filter((_, k) => !e.aspectos?.[k]).length;
   const set = (k: Campo, v: string) => onCambio((x) => ({ ...x, [k]: v }));
+  const tipo = tipoDe(e, cat);
+  // Datos de la ficha del formato (SST-FO-085 / SST-FO-087) que no pide la tabla del informe.
+  const campos: [Campo, string][] = [...CAMPOS[cat.formato]];
+  if (tipo) {
+    const hay = new Set(campos.map(([k]) => k));
+    const extra: [Campo, string][] = [
+      ["marca", "Marca"],
+      ["serial", tipo.lavado ? "N° de serie / lote" : "N° de serie"],
+      ["interno", "N° interno"],
+      ["fabricacion", "Fecha de fabricación (AAAA-MM-DD)"],
+      ...(cat.vigenciaMeses ? [["fechaPrueba", "Última inspección anual (AAAA-MM-DD)"] as [Campo, string]] : []),
+      ...(tipo.lavado ? [["ultimoLavado", "Fecha de último lavado (AAAA-MM-DD)"], ["proximoLavado", "Fecha de próximo lavado (AAAA-MM-DD)"]] as [Campo, string][] : []),
+    ];
+    campos.splice(campos.findIndex(([k]) => k === "condicion"), 0, ...extra.filter(([k]) => !hay.has(k)));
+  }
 
   return (
     <View style={[est.tarjeta, { borderLeftWidth: 4, borderLeftColor: tintaResultado(e.resultado) }]}>
@@ -285,16 +303,32 @@ function TarjetaEquipo({ n, e, cat, fechaInspeccion, abierto, onAbrir, onCambio,
 
       {abierto && (
         <View style={{ gap: 8 }}>
-          {CAMPOS[cat.formato].map(([k, label]) => (
+          {(cat.tiposElemento?.length ?? 0) > 1 && (
+            <View style={{ gap: 4 }}>
+              <Text style={est.etiqueta}>Ficha del formato {cat.formatoFicha}</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                {cat.tiposElemento!.map((t) => (
+                  <Pressable
+                    key={t.id}
+                    onPress={() => t.id !== tipo?.id && onCambio((x) => ({ ...x, tipoElemento: t.id, aspectos: {}, obsAspectos: {}, elemento: x.elemento || t.nombre }))}
+                    style={[est.input, { paddingVertical: 6 }, tipo?.id === t.id && { borderColor: color.azul, backgroundColor: color.tinte }]}
+                  >
+                    <Text style={est.texto}>{t.nombre}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          )}
+          {campos.map(([k, label]) => (
             <View key={k} style={{ gap: 4 }}>
               <Text style={est.etiqueta}>{label}</Text>
-              <TextInput style={est.input} value={e[k]} onChangeText={(v) => set(k, v)} multiline={k === "condicion"} />
+              <TextInput style={est.input} value={e[k] ?? ""} onChangeText={(v) => set(k, v)} multiline={k === "condicion"} />
             </View>
           ))}
           {cat.vigenciaMeses && (
             <Text style={[est.tenue, vig === "vencida" && { color: color.rojo, fontWeight: "700" }]}>
               {vig === "sin registro"
-                ? "Sin fecha de prueba registrada."
+                ? "Sin fecha registrada."
                 : `Vigencia de ${cat.vigenciaMeses} meses: vence el ${venceEl(e.fechaPrueba, cat.vigenciaMeses)!.split("-").reverse().join("/")}${vig === "vencida" ? " (vencida)" : ""}.`}
             </Text>
           )}
@@ -319,17 +353,27 @@ function TarjetaEquipo({ n, e, cat, fechaInspeccion, abierto, onAbrir, onCambio,
 
           <View style={{ gap: 6 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={est.etiqueta}>Lista de verificación</Text>
+              <Text style={est.etiqueta}>{tipo ? `Ficha ${cat.formatoFicha} – ${tipo.nombre}` : "Lista de verificación"}</Text>
               {pendientes > 0 && (
-                <Pressable onPress={() => onCambio((x) => ({ ...x, aspectos: Object.fromEntries(cat.aspectos.map((_, k) => [k, x.aspectos?.[k] ?? "C"])) }))} style={[est.input, { paddingVertical: 6 }]}>
+                <Pressable onPress={() => onCambio((x) => ({ ...x, aspectos: Object.fromEntries(aspectos.map((_, k) => [k, x.aspectos?.[k] ?? "C"])) }))} style={[est.input, { paddingVertical: 6 }]}>
                   <Text style={est.texto}>Todo cumple ({pendientes})</Text>
                 </Pressable>
               )}
             </View>
-            {cat.aspectos.map((a, k) => (
+            {tipo && <Text style={est.tenue}>Responde SI o NO a lo que dice cada ítem; la app sabe cuáles respuestas son un defecto.</Text>}
+            {aspectos.map((a, k) => (
               <View key={k} style={{ gap: 4 }}>
-                <Text style={est.texto}>{k + 1}. {a}</Text>
-                <OpcionesRespuesta valor={e.aspectos?.[k]} onElegir={(o) => onCambio((x) => ({ ...x, aspectos: { ...x.aspectos, [k]: o } }))} />
+                {a.parte && a.parte !== aspectos[k - 1]?.parte && <Text style={[est.subtitulo, { marginTop: 4 }]}>{a.parte}</Text>}
+                <Text style={est.texto}>{k + 1}. {a.texto}</Text>
+                <OpcionesRespuesta bueno={a.bueno} valor={e.aspectos?.[k]} onElegir={(o) => onCambio((x) => ({ ...x, aspectos: { ...x.aspectos, [k]: o } }))} />
+                {tipo && e.aspectos?.[k] === "NC" && (
+                  <TextInput
+                    style={est.input}
+                    placeholder="Observación (sale en la ficha)"
+                    value={e.obsAspectos?.[k] ?? ""}
+                    onChangeText={(v) => onCambio((x) => ({ ...x, obsAspectos: { ...x.obsAspectos, [k]: v } }))}
+                  />
+                )}
               </View>
             ))}
           </View>
