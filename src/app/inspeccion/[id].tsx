@@ -3,13 +3,14 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { exportarPdf } from "@/media/exportar";
+import type { Documento } from "@/media/exportar";
 import { FotosEvidencia } from "@/ui/FotosEvidencia";
 import { OpcionesRespuesta } from "@/ui/OpcionesRespuesta";
+import { BotonesExportar } from "@/ui/BotonesExportar";
 import { PanelFirma } from "@/ui/PanelFirma";
 import { SST_FO_070 } from "@/data/sstFo070";
 import { bloquesActivos, calcularResultado, generarPlanAccion, marcarNoAplica } from "@/domain/controlOperacional";
-import { tituloInspeccion, type InspeccionFrente } from "@/domain/inspeccion";
+import { tituloInspeccion, type Inspeccion, type InspeccionFrente } from "@/domain/inspeccion";
 import type { Criticidad, ItemVerificacion, RespuestaItem } from "@/domain/tipos";
 import { guardar, obtener } from "@/db/inspecciones";
 import { color, est } from "@/ui/tema";
@@ -22,7 +23,6 @@ export default function Verificacion() {
   const db = useSQLiteContext();
   const [ins, setIns] = useState<InspeccionFrente | null>(null);
   const [bloque, setBloque] = useState(0);
-  const [exportando, setExportando] = useState(false);
   const [firmando, setFirmando] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,21 +54,14 @@ export default function Verificacion() {
     }
   }
 
-  async function exportar() {
-    if (!ins) return;
+  async function preparar(doc: Documento): Promise<Inspeccion | null> {
+    if (!ins) return null;
     if (res.sinDiligenciar) {
       Alert.alert("Inspección incompleta", `Faltan ${res.sinDiligenciar} ítems por marcar. Complétalos antes de generar el informe.`);
-      return;
+      return null;
     }
-    setExportando(true);
-    try {
-      await guardar(db, ins);
-      await exportarPdf(ins);
-    } catch (e) {
-      Alert.alert("No se pudo generar el PDF", String((e as Error).message ?? e));
-    } finally {
-      setExportando(false);
-    }
+    await guardar(db, ins);
+    return ins;
   }
 
   const resBloque = (n: number) => res.bloques.find((x) => x.numero === n)!;
@@ -169,9 +162,7 @@ export default function Verificacion() {
         onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, contratista: f } }))}
       />
 
-      <Pressable style={[est.boton, exportando && { opacity: 0.6 }]} disabled={exportando} onPress={exportar}>
-        <Text style={est.botonTexto}>{exportando ? "Generando PDF…" : "Generar informe PDF y compartir"}</Text>
-      </Pressable>
+      <BotonesExportar preparar={preparar} />
     </ScrollView>
   );
 }

@@ -6,7 +6,13 @@ export interface ListaLocativa {
   id: string;
   nombre: string;
   validada: boolean;
+  /** Código del formato de OINAC, si la lista sale de uno (p. ej. «SST-FO-072 V01»). */
+  formato?: string;
+  /** Objetivo que trae el formato; si falta, se arma uno con los aspectos. */
+  objetivo?: string;
   aspectos: string[];
+  /** Subtítulos de la lista: cada uno empieza en el aspecto con índice `desde`. */
+  grupos?: { titulo: string; desde: number }[];
   normas: { aspecto: string; requisito: string; fuente: string }[];
 }
 
@@ -72,6 +78,38 @@ export const LISTAS_LOCATIVAS: ListaLocativa[] = [
       "Pasillos y salidas despejados.",
       "Extintor adecuado, con carga vigente y accesible.",
       "Iluminación y ventilación adecuadas.",
+    ],
+    normas: [],
+  },
+  {
+    // Formato SST-FO-072 V01 «Inspección de áreas de trabajo – parqueaderos».
+    id: "parqueadero",
+    nombre: "Parqueaderos",
+    validada: true,
+    formato: "SST-FO-072 V01",
+    objetivo: "Prevenir lesiones y enfermedades laborales, y cumplir los requisitos legales en seguridad y salud en el trabajo.",
+    aspectos: [
+      "El parqueadero cuenta con áreas de circulación peatonal demarcadas.",
+      "La señalización está en buen estado y acorde a los riesgos del parqueadero (límites de velocidad, encienda luces, sentidos de circulación, pare).",
+      "Los pisos están libres de huecos, desniveles y humedad.",
+      "Los espejos están en buen estado y ubicados en los sitios necesarios.",
+      "Se tiene un mantenimiento adecuado en las lámparas.",
+      "Están señalizadas las vías de evacuación.",
+      "Hay disponibles extintores en las áreas de parqueadero.",
+      "Las personas identifican la ruta de evacuación desde el parqueadero y el punto de encuentro.",
+      "Los vehículos se estacionan en reversa.",
+      "Las personas respetan las señales existentes.",
+      "Los empleados utilizan manos libres para hablar por celular durante la conducción al ingresar y salir del parqueadero.",
+      "Punto de encuentro: señalización en buen estado.",
+      "Punto de encuentro: libre de obstáculos y de fácil acceso.",
+      "Punto de encuentro: demarcación del área.",
+    ],
+    grupos: [
+      { titulo: "Condición locativa", desde: 0 },
+      { titulo: "Iluminación", desde: 4 },
+      { titulo: "Emergencias", desde: 5 },
+      { titulo: "Tránsito", desde: 8 },
+      { titulo: "Punto de encuentro", desde: 11 },
     ],
     normas: [],
   },

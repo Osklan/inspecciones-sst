@@ -7,6 +7,7 @@ import { CATEGORIAS_EQUIPOS } from "@/data/categoriasEquipos";
 import { LISTAS_LOCATIVAS } from "@/data/listasLocativas";
 import { SST_FO_070 } from "@/data/sstFo070";
 import {
+  nuevaInspeccionBotiquines,
   nuevaInspeccionEquipos,
   nuevaInspeccionFrente,
   nuevaInspeccionLocativa,
@@ -14,6 +15,7 @@ import {
   type Inspeccion,
   type InspeccionFrente,
 } from "@/domain/inspeccion";
+import type { InspeccionBotiquines } from "@/domain/botiquines";
 import type { InspeccionEquipos } from "@/domain/equipos";
 import { listaDe, objetivoPorDefecto, type EncabezadoLocativa, type InspeccionLocativa } from "@/domain/locativas";
 import { TIPOS_INSPECCION, type TipoInspeccion } from "@/domain/tipos";
@@ -54,6 +56,7 @@ export default function Nueva() {
   const [frente, setFrente] = useState<InspeccionFrente>(() => nuevaInspeccionFrente());
   const [locativa, setLocativa] = useState<InspeccionLocativa>(() => nuevaInspeccionLocativa());
   const [anteriorEquipos, setAnteriorEquipos] = useState<InspeccionEquipos>();
+  const [botiquines, setBotiquines] = useState<InspeccionBotiquines>(() => nuevaInspeccionBotiquines());
 
   // Reutiliza proyecto y personas de la última inspección del mismo tipo.
   useEffect(() => {
@@ -64,6 +67,8 @@ export default function Nueva() {
       if (loc) setLocativa((x) => ({ ...nuevaInspeccionLocativa(x.listaId, loc), id: x.id, puntos: x.puntos }));
       const eq = l.find((i) => i.tipo === "equipos");
       if (eq) setAnteriorEquipos(eq);
+      const bot = l.find((i) => i.tipo === "botiquines");
+      if (bot) setBotiquines((x) => ({ ...nuevaInspeccionBotiquines(bot), id: x.id }));
     });
   }, [db]);
 
@@ -85,6 +90,7 @@ export default function Nueva() {
 
       {tipo === "frentes" && <FormFrente ins={frente} setIns={setFrente} onCrear={() => crear(frente)} />}
       {tipo === "locativas" && <FormLocativa ins={locativa} setIns={setLocativa} onCrear={() => crear(locativa)} />}
+      {tipo === "botiquines" && <FormBotiquines ins={botiquines} setIns={setBotiquines} onCrear={() => crear(botiquines)} />}
       {tipo === "equipos" && <FormEquipos key={anteriorEquipos?.id ?? "nueva"} anterior={anteriorEquipos} onCrear={crear} />}
     </ScrollView>
   );
@@ -229,6 +235,33 @@ function FormEquipos({ anterior, onCrear }: { anterior?: InspeccionEquipos; onCr
         <Text style={est.botonTexto}>Empezar inspección</Text>
       </Pressable>
       {!listo && <Text style={est.tenue}>Elige al menos una categoría y escribe el área y una fecha válida para continuar.</Text>}
+    </>
+  );
+}
+
+function FormBotiquines({ ins, setIns, onCrear }: FormProps<InspeccionBotiquines>) {
+  const setCampo = (k: keyof EncabezadoLocativa, v: string) => setIns((x) => ({ ...x, encabezado: { ...x.encabezado, [k]: v } }));
+  const listo = ins.encabezado.area.trim() && fechaValida(ins.encabezado.fecha);
+
+  return (
+    <>
+      <View style={est.tarjeta}>
+        <Text style={est.subtitulo}>Datos generales (SST-FO-077)</Text>
+        {CAMPOS_LOCATIVA.map(([k, label]) => (
+          <View key={k} style={{ gap: 4 }}>
+            <Text style={est.etiqueta}>{k === "elaboradoPor" ? "Inspeccionado por" : label}</Text>
+            <TextInput style={est.input} value={ins.encabezado[k]} onChangeText={(v) => setCampo(k, v)} />
+          </View>
+        ))}
+        {ins.botiquines.some((b) => b.area) && (
+          <Text style={est.tenue}>Se repiten los botiquines de la inspección anterior: {ins.botiquines.map((b) => b.area).filter(Boolean).join(", ")}.</Text>
+        )}
+      </View>
+
+      <Pressable style={[est.boton, !listo && { opacity: 0.5 }]} disabled={!listo} onPress={onCrear}>
+        <Text style={est.botonTexto}>Empezar inspección</Text>
+      </Pressable>
+      {!listo && <Text style={est.tenue}>Escribe la sede o área y una fecha válida para continuar.</Text>}
     </>
   );
 }

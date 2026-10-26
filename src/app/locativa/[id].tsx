@@ -3,14 +3,15 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { exportarPdf } from "@/media/exportar";
+import type { Documento } from "@/media/exportar";
 import { borrarFoto } from "@/media/fotos";
-import { tituloInspeccion } from "@/domain/inspeccion";
-import { calcularLocativa, listaDe, nuevoPunto, type InspeccionLocativa, type PuntoLocativo } from "@/domain/locativas";
+import { tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
+import { calcularLocativa, grupoEn, listaDe, nuevoPunto, type InspeccionLocativa, type PuntoLocativo } from "@/domain/locativas";
 import type { RespuestaItem } from "@/domain/tipos";
 import { guardar, obtener } from "@/db/inspecciones";
 import { FotosEvidencia } from "@/ui/FotosEvidencia";
 import { OpcionesRespuesta } from "@/ui/OpcionesRespuesta";
+import { BotonesExportar } from "@/ui/BotonesExportar";
 import { PanelFirma } from "@/ui/PanelFirma";
 import { color, est } from "@/ui/tema";
 
@@ -28,7 +29,6 @@ export default function InspeccionLocativaPantalla() {
   const db = useSQLiteContext();
   const [ins, setIns] = useState<InspeccionLocativa | null>(null);
   const [sel, setSel] = useState(0);
-  const [exportando, setExportando] = useState(false);
   const [firmando, setFirmando] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -76,27 +76,20 @@ export default function InspeccionLocativaPantalla() {
     ]);
   }
 
-  async function exportar() {
-    if (!ins) return;
+  async function preparar(doc: Documento): Promise<Inspeccion | null> {
+    if (!ins) return null;
     const sinNombre = ins.puntos.findIndex((q) => !q.nombre.trim());
     if (sinNombre >= 0) {
       setSel(sinNombre);
       Alert.alert("Falta el nombre", "Escribe el nombre de cada punto inspeccionado antes de generar el informe.");
-      return;
+      return null;
     }
     if (res!.total.sinMarcar) {
       Alert.alert("Inspección incompleta", `Faltan ${res!.total.sinMarcar} aspectos por marcar. Complétalos antes de generar el informe.`);
-      return;
+      return null;
     }
-    setExportando(true);
-    try {
-      await guardar(db, ins);
-      await exportarPdf(ins);
-    } catch (e) {
-      Alert.alert("No se pudo generar el PDF", String((e as Error).message ?? e));
-    } finally {
-      setExportando(false);
-    }
+    await guardar(db, ins);
+    return ins;
   }
 
   return (
@@ -141,9 +134,20 @@ export default function InspeccionLocativaPantalla() {
       </View>
 
       {lista.aspectos.map((a, k) => (
-        <View key={k} style={est.tarjeta}>
-          <Text style={est.texto}>{a}</Text>
-          <OpcionesRespuesta valor={p.respuestas[k]} onElegir={(o) => responder(k, o)} />
+        <View key={k} style={{ gap: 8 }}>
+          {grupoEn(lista, k) && <Text style={[est.subtitulo, { marginTop: 4 }]}>{grupoEn(lista, k)}</Text>}
+          <View style={est.tarjeta}>
+            <Text style={est.texto}>{a}</Text>
+            <OpcionesRespuesta valor={p.respuestas[k]} onElegir={(o) => responder(k, o)} />
+            {p.respuestas[k] === "NC" && (
+              <TextInput
+                style={est.input}
+                placeholder="Observación (sale en la lista de verificación)"
+                value={p.observaciones?.[k] ?? ""}
+                onChangeText={(v) => cambiarPunto((q) => ({ ...q, observaciones: { ...q.observaciones, [k]: v } }))}
+              />
+            )}
+          </View>
         </View>
       ))}
 
@@ -204,9 +208,7 @@ export default function InspeccionLocativaPantalla() {
         onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, reviso: f } }))}
       />
 
-      <Pressable style={[est.boton, exportando && { opacity: 0.6 }]} disabled={exportando} onPress={exportar}>
-        <Text style={est.botonTexto}>{exportando ? "Generando PDF…" : "Generar informe PDF y compartir"}</Text>
-      </Pressable>
+      <BotonesExportar preparar={preparar} />
     </ScrollView>
   );
 }

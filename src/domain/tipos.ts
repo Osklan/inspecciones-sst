@@ -1,11 +1,12 @@
 // Modelo de datos de la app de inspecciones SST.
 
-export type TipoInspeccion = "frentes" | "equipos" | "locativas";
+export type TipoInspeccion = "frentes" | "equipos" | "locativas" | "botiquines";
 
 export const TIPOS_INSPECCION: Record<TipoInspeccion, string> = {
   frentes: "Frentes de trabajo",
   equipos: "Herramientas, equipos y EPP",
   locativas: "Condiciones locativas",
+  botiquines: "Botiquines",
 };
 
 export type Criticidad = "Crítico" | "Mayor" | "Menor";
