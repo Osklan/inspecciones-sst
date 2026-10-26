@@ -1,4 +1,4 @@
-# Inspecciones SST
+# SST TRACK – Inspecciones SST
 
 App Android (React Native + Expo) para registrar inspecciones SST en campo y generar los informes de OINAC.
 
