@@ -3,15 +3,18 @@ import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { CATEGORIAS_EQUIPOS } from "@/data/categoriasEquipos";
 import { LISTAS_LOCATIVAS } from "@/data/listasLocativas";
 import { SST_FO_070 } from "@/data/sstFo070";
 import {
+  nuevaInspeccionEquipos,
   nuevaInspeccionFrente,
   nuevaInspeccionLocativa,
   type EncabezadoFrente,
   type Inspeccion,
   type InspeccionFrente,
 } from "@/domain/inspeccion";
+import type { InspeccionEquipos } from "@/domain/equipos";
 import { listaDe, objetivoPorDefecto, type EncabezadoLocativa, type InspeccionLocativa } from "@/domain/locativas";
 import { TIPOS_INSPECCION, type TipoInspeccion } from "@/domain/tipos";
 import { guardar, listar } from "@/db/inspecciones";
@@ -50,6 +53,7 @@ export default function Nueva() {
   const [tipo, setTipo] = useState<TipoInspeccion>("frentes");
   const [frente, setFrente] = useState<InspeccionFrente>(() => nuevaInspeccionFrente());
   const [locativa, setLocativa] = useState<InspeccionLocativa>(() => nuevaInspeccionLocativa());
+  const [anteriorEquipos, setAnteriorEquipos] = useState<InspeccionEquipos>();
 
   // Reutiliza proyecto y personas de la última inspección del mismo tipo.
   useEffect(() => {
@@ -58,6 +62,8 @@ export default function Nueva() {
       if (f) setFrente((x) => ({ ...nuevaInspeccionFrente(f), id: x.id }));
       const loc = l.find((i) => i.tipo === "locativas");
       if (loc) setLocativa((x) => ({ ...nuevaInspeccionLocativa(x.listaId, loc), id: x.id, puntos: x.puntos }));
+      const eq = l.find((i) => i.tipo === "equipos");
+      if (eq) setAnteriorEquipos(eq);
     });
   }, [db]);
 
@@ -72,18 +78,14 @@ export default function Nueva() {
         <Text style={est.subtitulo}>Tipo de inspección</Text>
         {(Object.keys(TIPOS_INSPECCION) as TipoInspeccion[]).map((t) => (
           <Pressable key={t} onPress={() => setTipo(t)} style={[est.input, seleccion(tipo === t)]}>
-            <Text style={est.texto}>{TIPOS_INSPECCION[t]}{t === "equipos" ? " (próximamente)" : ""}</Text>
+            <Text style={est.texto}>{TIPOS_INSPECCION[t]}</Text>
           </Pressable>
         ))}
       </View>
 
       {tipo === "frentes" && <FormFrente ins={frente} setIns={setFrente} onCrear={() => crear(frente)} />}
       {tipo === "locativas" && <FormLocativa ins={locativa} setIns={setLocativa} onCrear={() => crear(locativa)} />}
-      {tipo === "equipos" && (
-        <View style={est.tarjeta}>
-          <Text style={est.texto}>Este tipo de inspección llega en la siguiente versión.</Text>
-        </View>
-      )}
+      {tipo === "equipos" && <FormEquipos key={anteriorEquipos?.id ?? "nueva"} anterior={anteriorEquipos} onCrear={crear} />}
     </ScrollView>
   );
 }
@@ -176,6 +178,57 @@ function FormLocativa({ ins, setIns, onCrear }: FormProps<InspeccionLocativa>) {
         <Text style={est.botonTexto}>Empezar inspección</Text>
       </Pressable>
       {!listo && <Text style={est.tenue}>Escribe la sede o área y una fecha válida para continuar.</Text>}
+    </>
+  );
+}
+
+function FormEquipos({ anterior, onCrear }: { anterior?: InspeccionEquipos; onCrear: (ins: InspeccionEquipos) => void }) {
+  const [cats, setCats] = useState<string[]>(() => anterior?.secciones.map((s) => s.categoriaId) ?? []);
+  const [copiar, setCopiar] = useState(!!anterior);
+  const [enc, setEnc] = useState<EncabezadoLocativa>(() => nuevaInspeccionEquipos([], anterior).encabezado);
+
+  const alternar = (id: string) => setCats((x) => (x.includes(id) ? x.filter((c) => c !== id) : [...x, id]));
+  const listo = cats.length > 0 && enc.area.trim() && fechaValida(enc.fecha);
+
+  function crear() {
+    // Las secciones siguen el orden del catálogo.
+    const orden = CATEGORIAS_EQUIPOS.map((c) => c.id).filter((c) => cats.includes(c));
+    onCrear({ ...nuevaInspeccionEquipos(orden, anterior, copiar), encabezado: enc });
+  }
+
+  return (
+    <>
+      <View style={est.tarjeta}>
+        <Text style={est.subtitulo}>Equipos a inspeccionar</Text>
+        {CATEGORIAS_EQUIPOS.map((c) => {
+          const on = cats.includes(c.id);
+          return (
+            <Pressable key={c.id} onPress={() => alternar(c.id)} style={[est.input, seleccion(on)]}>
+              <Text style={est.texto}>{on ? "☑" : "☐"}  {c.nombre}</Text>
+            </Pressable>
+          );
+        })}
+        {anterior && (
+          <Pressable onPress={() => setCopiar(!copiar)} style={[est.input, seleccion(copiar)]}>
+            <Text style={est.texto}>{copiar ? "☑" : "☐"}  Partir de los equipos de la inspección del {anterior.encabezado.fecha.split("-").reverse().join("/")}</Text>
+          </Pressable>
+        )}
+      </View>
+
+      <View style={est.tarjeta}>
+        <Text style={est.subtitulo}>Datos generales</Text>
+        {CAMPOS_LOCATIVA.map(([k, label]) => (
+          <View key={k} style={{ gap: 4 }}>
+            <Text style={est.etiqueta}>{label}</Text>
+            <TextInput style={est.input} value={enc[k]} onChangeText={(v) => setEnc((x) => ({ ...x, [k]: v }))} />
+          </View>
+        ))}
+      </View>
+
+      <Pressable style={[est.boton, !listo && { opacity: 0.5 }]} disabled={!listo} onPress={crear}>
+        <Text style={est.botonTexto}>Empezar inspección</Text>
+      </Pressable>
+      {!listo && <Text style={est.tenue}>Elige al menos una categoría y escribe el área y una fecha válida para continuar.</Text>}
     </>
   );
 }

@@ -3,13 +3,17 @@ import { File, Paths } from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { informeFrenteHtml, nombreArchivoInforme } from "@/domain/informeFrente";
+import { informeEquiposHtml, nombreArchivoEquipos } from "@/domain/informeEquipos";
 import { informeLocativaHtml, nombreArchivoLocativa } from "@/domain/informeLocativa";
 import type { Inspeccion } from "@/domain/inspeccion";
 import { fotosEnBase64 } from "./fotos";
 
 export async function exportarPdf(ins: Inspeccion): Promise<string> {
   let html: string, nombre: string;
-  if (ins.tipo === "locativas") {
+  if (ins.tipo === "equipos") {
+    html = informeEquiposHtml(ins, await fotosEnBase64(ins.secciones.flatMap((s) => s.equipos.flatMap((e) => e.fotos))));
+    nombre = nombreArchivoEquipos(ins);
+  } else if (ins.tipo === "locativas") {
     html = informeLocativaHtml(ins, await fotosEnBase64(ins.puntos.flatMap((p) => p.fotos)));
     nombre = nombreArchivoLocativa(ins);
   } else {

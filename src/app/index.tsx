@@ -2,16 +2,22 @@
 import { router, useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, Image, Pressable, Text, View } from "react-native";
 import { SST_FO_070 } from "@/data/sstFo070";
 import { bloquesActivos, calcularResultado, marcarNoAplica } from "@/domain/controlOperacional";
 import { ETIQUETA_TIPO, tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
+import { calcularEquipos } from "@/domain/equipos";
 import { calcularLocativa } from "@/domain/locativas";
 import { listar } from "@/db/inspecciones";
 import { rutaInspeccion } from "@/ui/rutas";
 import { color, est } from "@/ui/tema";
 
 function resumen(i: Inspeccion): { cumplimiento: number | null; pendientes: number; alerta: string | null } {
+  if (i.tipo === "equipos") {
+    const r = calcularEquipos(i);
+    const aptos = r.total - r.sinResultado;
+    return { cumplimiento: aptos ? r.porResultado.Apto / aptos : null, pendientes: r.sinResultado, alerta: r.hallazgos.length ? r.resumen : null };
+  }
   if (i.tipo === "locativas") {
     const r = calcularLocativa(i);
     return { cumplimiento: r.total.cumplimiento, pendientes: r.total.sinMarcar, alerta: r.conHallazgo.length ? r.resumen : null };
@@ -36,9 +42,12 @@ export default function Lista() {
         keyExtractor={(i) => i.id}
         contentContainerStyle={est.contenido}
         ListHeaderComponent={
-          <Pressable style={est.boton} onPress={() => router.push("/nueva")}>
-            <Text style={est.botonTexto}>+ Nueva inspección</Text>
-          </Pressable>
+          <View style={{ gap: 12 }}>
+            <Image source={require("../../assets/logo-sst-track.png")} style={{ width: 140, height: 140, alignSelf: "center", borderRadius: 24 }} />
+            <Pressable style={est.boton} onPress={() => router.push("/nueva")}>
+              <Text style={est.botonTexto}>+ Nueva inspección</Text>
+            </Pressable>
+          </View>
         }
         ListEmptyComponent={<Text style={[est.tenue, { textAlign: "center", marginTop: 24 }]}>Aún no hay inspecciones en este teléfono.</Text>}
         renderItem={({ item }) => {

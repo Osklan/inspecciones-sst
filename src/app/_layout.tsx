@@ -16,10 +16,11 @@ export default function Layout() {
           contentStyle: { backgroundColor: color.fondo },
         }}
       >
-        <Stack.Screen name="index" options={{ title: "Inspecciones SST" }} />
+        <Stack.Screen name="index" options={{ title: "SST TRACK" }} />
         <Stack.Screen name="nueva" options={{ title: "Nueva inspección" }} />
         <Stack.Screen name="inspeccion/[id]" options={{ title: "Verificación" }} />
         <Stack.Screen name="locativa/[id]" options={{ title: "Inspección locativa" }} />
+        <Stack.Screen name="equipos/[id]" options={{ title: "Equipos y EPP" }} />
       </Stack>
     </SQLiteProvider>
   );
