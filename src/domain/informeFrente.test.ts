@@ -20,7 +20,7 @@ function ejemplo() {
 describe("informe del SST-FO-070", () => {
   it("incluye encabezado, resultado, NC con fecha límite y escapa el texto", () => {
     const html = informeFrenteHtml(ejemplo(), { "file:///a.jpg": "QUJD" });
-    expect(html).toContain("CONTROL OPERACIONAL DE CONTRATISTAS");
+    expect(html).toContain(">INFORME DE INSPECCIÓN DE FRENTES DE TRABAJO</td>");
     expect(html).toContain("Contratista LEGGO &lt;obra&gt;");
     expect(html).not.toContain("<obra>");
     expect(html).toContain("19/10/2026");

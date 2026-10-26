@@ -84,7 +84,7 @@ export function informeEquiposHtml(ins: InspeccionEquipos, fotos: Record<string,
   const bar = (t: string, extra = "") => `<div class="bar"${extra}>${++sec}. ${t}</div>`;
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
-${cabecera(esc(titulo), esc(e.proyecto))}
+${cabecera(esc(titulo))}
 
 ${bar("DATOS GENERALES")}
 ${tablaDatosGenerales(e, periodo(e.fecha), r.resumen)}

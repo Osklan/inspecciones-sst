@@ -61,7 +61,7 @@ export function informeBotiquinesHtml(ins: InspeccionBotiquines, fotos: Record<s
   const bar = (t: string, extra = "") => `<div class="bar"${extra}>${++sec}. ${t}</div>`;
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
-${cabecera("INFORME DE INSPECCIÓN DE BOTIQUINES", esc(e.proyecto))}
+${cabecera("INFORME DE INSPECCIÓN DE BOTIQUINES")}
 
 ${bar("DATOS GENERALES")}
 ${tablaDatosGenerales(e, periodo(e.fecha), r.resumen)}

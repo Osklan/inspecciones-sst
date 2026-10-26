@@ -9,7 +9,7 @@ export function informeLocativaHtml(ins: InspeccionLocativa, fotos: Record<strin
   const e = ins.encabezado;
   const l = listaDe(ins);
   const r = calcularLocativa(ins);
-  const titulo = `INFORME DE INSPECCIÓN DE ${l.nombre.toUpperCase()}${e.area ? ` – ${e.area.toUpperCase()}` : ""}`;
+  const titulo = `INFORME DE INSPECCIÓN DE ${l.nombre.toUpperCase()}`;
 
   // Las evidencias se numeran en el orden de los hallazgos.
   let n = 0;
@@ -52,7 +52,7 @@ export function informeLocativaHtml(ins: InspeccionLocativa, fotos: Record<strin
   const bar = (t: string, extra = "") => `<div class="bar"${extra}>${++sec}. ${t}</div>`;
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
-${cabecera(esc(titulo), esc(e.proyecto))}
+${cabecera(esc(titulo))}
 
 ${bar("DATOS GENERALES")}
 ${tablaDatosGenerales(e, periodo(e.fecha), r.resumen)}

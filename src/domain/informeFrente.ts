@@ -55,7 +55,7 @@ export function informeFrenteHtml(ins: InspeccionFrente, fotos: Record<string, s
   );
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
-${cabecera("CONTROL OPERACIONAL DE CONTRATISTAS", `SST-FO-070 ${SST_FO_070_VERSION} – Verificación técnica en campo`)}
+${cabecera("INFORME DE INSPECCIÓN DE FRENTES DE TRABAJO")}
 
 <div class="bar">1. INFORMACIÓN GENERAL</div>
 <table>
