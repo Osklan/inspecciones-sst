@@ -9,7 +9,8 @@ const REFERENCIAS = [
   "Decreto 1072 de 2015 y Resolución 0312 de 2019 (SG-SST y gestión de contratistas).",
   "Resolución 4272 de 2021 (trabajo en alturas).",
   "Resolución 0491 de 2020 (espacios confinados).",
-  "RETIE – Reglamento Técnico de Instalaciones Eléctricas.",
+  "Riesgo eléctrico: RETIE – Reglamento Técnico de Instalaciones Eléctricas, y Resolución 5018 de 2019 (lineamientos de seguridad y salud en el trabajo en los procesos de generación, transmisión, distribución y comercialización de la energía eléctrica).",
+  "Izaje de cargas: ASME B30 (grúas, eslingas, ganchos y accesorios de izaje) y OSHA 29 CFR 1926 Subparte CC (grúas y torres grúa en construcción) y 1926.251 (aparejos de izaje).",
   "NFPA 51B (trabajos en caliente) y OSHA 1926 Subparte P (excavaciones), como referencias técnicas complementarias.",
 ];
 

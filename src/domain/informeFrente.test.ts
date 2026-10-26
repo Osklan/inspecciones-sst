@@ -30,6 +30,10 @@ describe("informe del SST-FO-070", () => {
     expect(html).toContain("24/10/2026");
     // Bloques no activos se informan como NA.
     expect(html).toContain("No aplican en este frente");
+    // Referencias normativas pedidas por SST OINAC.
+    expect(html).toContain("Resolución 5018 de 2019");
+    expect(html).toContain("ASME B30");
+    expect(html).toContain("OSHA 29 CFR 1926 Subparte CC");
   });
 
   it("numera las evidencias, las referencia desde la NC y marca las fotos que faltan", () => {

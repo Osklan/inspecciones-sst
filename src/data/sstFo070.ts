@@ -313,7 +313,7 @@ export const SST_FO_070: BloqueVerificacion[] = [
   },
   {
     "numero": 7,
-    "titulo": "TRABAJO ELÉCTRICO (RETIE)",
+    "titulo": "TRABAJO ELÉCTRICO (RETIE y Res. 5018/2019)",
     "items": [
       {
         "codigo": "ELE-01",
@@ -437,7 +437,7 @@ export const SST_FO_070: BloqueVerificacion[] = [
   },
   {
     "numero": 9,
-    "titulo": "IZAJE DE CARGAS",
+    "titulo": "IZAJE DE CARGAS (ASME B30 / OSHA 1926 Subparte CC)",
     "items": [
       {
         "codigo": "IZA-01",
