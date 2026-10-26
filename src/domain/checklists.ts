@@ -154,7 +154,7 @@ export function checklistLocativaHtml(ins: InspeccionLocativa): string {
     })
     .join("");
 
-  return documento(`${cabecera(`INSPECCIÓN DE ${esc(l.nombre.toUpperCase())} – LISTA DE VERIFICACIÓN`, esc(l.formato ?? e.proyecto))}
+  return documento(`${cabecera(`INSPECCIÓN DE ${esc(l.nombre.toUpperCase())} – LISTA DE VERIFICACIÓN`, esc(l.formato ?? ""))}
 <table>
 ${fila("Fecha", fecha(e.fecha), "Sede / Área", esc(e.area))}
 ${fila("Responsable de la inspección", esc(e.elaboradoPor), "Responsable del área", esc(e.responsableArea))}
@@ -283,7 +283,7 @@ export function checklistEquiposHtml(ins: InspeccionEquipos): string {
     }
   }
 
-  const resumen = `${cabecera("INSPECCIÓN DE HERRAMIENTAS, EQUIPOS Y EPP – LISTAS DE VERIFICACIÓN", esc(e.proyecto))}
+  const resumen = `${cabecera("INSPECCIÓN DE HERRAMIENTAS, EQUIPOS Y EPP – LISTAS DE VERIFICACIÓN")}
 <table>
 ${fila("Fecha", fecha(e.fecha), "Sede / Área", esc(e.area))}
 ${fila("Responsable de la inspección", esc(e.elaboradoPor), "Responsable del área", esc(e.responsableArea))}
