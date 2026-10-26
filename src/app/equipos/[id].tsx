@@ -200,18 +200,11 @@ export default function InspeccionEquiposPantalla() {
       </View>
 
       <PanelFirma
-        titulo={`Elaboró – ${ins.encabezado.cargoElaboro}`}
+        titulo={`Inspeccionó – ${ins.encabezado.cargoElaboro}`}
         nombre={ins.encabezado.elaboradoPor}
         firma={ins.firmas?.elaboro}
         onFirmando={setFirmando}
         onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, elaboro: f } }))}
-      />
-      <PanelFirma
-        titulo={`Revisó – ${ins.encabezado.cargoReviso}`}
-        nombre={ins.encabezado.revisadoPor}
-        firma={ins.firmas?.reviso}
-        onFirmando={setFirmando}
-        onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, reviso: f } }))}
       />
 
       <View style={est.tarjeta}>

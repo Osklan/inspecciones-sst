@@ -40,10 +40,8 @@ const CAMPOS_LOCATIVA: [keyof EncabezadoLocativa, string][] = [
   ["responsableArea", "Responsable del área"],
   ["tipoInspeccion", "Tipo de inspección (Planeada, No planeada…)"],
   ["fecha", "Fecha de inspección (AAAA-MM-DD)"],
-  ["elaboradoPor", "Elaborado por"],
-  ["cargoElaboro", "Cargo de quien elabora"],
-  ["revisadoPor", "Revisado por"],
-  ["cargoReviso", "Cargo de quien revisa"],
+  ["elaboradoPor", "Inspeccionado por"],
+  ["cargoElaboro", "Cargo de quien inspecciona"],
 ];
 
 const OPCIONALES = SST_FO_070.filter((b) => !b.siempre);

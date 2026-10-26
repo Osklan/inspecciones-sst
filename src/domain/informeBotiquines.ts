@@ -21,8 +21,7 @@ const nombre = (b: { area: string }, i: number) => b.area.trim() || `Botiquín $
 
 /** SST que elabora y revisa, y el responsable de cada botiquín. */
 export const firmasBotiquines = (ins: InspeccionBotiquines): CeldaFirma[] => [
-  { firma: ins.firmas?.elaboro, cargo: `Elaboró – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
-  { firma: ins.firmas?.reviso, cargo: `Revisó – ${ins.encabezado.cargoReviso}`, nombre: ins.encabezado.revisadoPor },
+  { firma: ins.firmas?.elaboro, cargo: `Inspeccionó – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
   ...ins.botiquines.map((b, i) => ({ firma: b.firma, cargo: `Responsable – ${nombre(b, i)}`, nombre: b.responsable })),
 ];
 

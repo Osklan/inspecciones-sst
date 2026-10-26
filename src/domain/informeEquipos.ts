@@ -122,8 +122,7 @@ ${evidencias.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-b
 
 /** SST que elabora y revisa, propietarios del EPP y responsables presentes. */
 export const firmasInforme = (ins: InspeccionEquipos): CeldaFirma[] => [
-  { firma: ins.firmas?.elaboro, cargo: `Elaboró – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
-  { firma: ins.firmas?.reviso, cargo: `Revisó – ${ins.encabezado.cargoReviso}`, nombre: ins.encabezado.revisadoPor },
+  { firma: ins.firmas?.elaboro, cargo: `Inspeccionó – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
   ...firmantesDe(ins).map((f) => ({ firma: f.firma, cargo: f.rol, nombre: f.nombre })),
 ];
 

@@ -198,7 +198,7 @@ export default function InspeccionLocativaPantalla() {
       {firmasDePunto(lista, p).map((f) => (
         <PanelFirma
           key={f.id}
-          titulo={`${f.rol} – ${p.nombre || `Punto ${i + 1}`}${f.id === "inspector" ? " (si no firmas aquí, se usa la firma de Elaboró)" : ""}`}
+          titulo={`${f.rol} – ${p.nombre || `Punto ${i + 1}`}${f.id === "inspector" ? " (si no firmas aquí, se usa la firma de quien inspecciona)" : ""}`}
           nombre={f.nombre || (f.id === "inspector" ? ins.encabezado.elaboradoPor : "")}
           firma={f.firma}
           onFirmando={setFirmando}
@@ -229,19 +229,22 @@ export default function InspeccionLocativaPantalla() {
       </View>
 
       <PanelFirma
-        titulo={`Elaboró – ${ins.encabezado.cargoElaboro}`}
+        titulo={`Inspeccionó – ${ins.encabezado.cargoElaboro}`}
         nombre={ins.encabezado.elaboradoPor}
         firma={ins.firmas?.elaboro}
         onFirmando={setFirmando}
         onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, elaboro: f } }))}
       />
-      <PanelFirma
-        titulo={`Revisó – ${ins.encabezado.cargoReviso}`}
-        nombre={ins.encabezado.revisadoPor}
-        firma={ins.firmas?.reviso}
-        onFirmando={setFirmando}
-        onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, reviso: f } }))}
-      />
+
+      {!lista.firmasPunto && (
+        <PanelFirma
+          titulo="Responsable del área"
+          nombre={ins.encabezado.responsableArea}
+          firma={ins.firmas?.responsable}
+          onFirmando={setFirmando}
+          onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, responsable: f } }))}
+        />
+      )}
 
       <BotonesExportar preparar={preparar} />
     </ScrollView>

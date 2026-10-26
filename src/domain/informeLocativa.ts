@@ -95,8 +95,8 @@ ${evidencias.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-b
 }
 
 export const firmasInforme = (ins: InspeccionLocativa): CeldaFirma[] => [
-  { firma: ins.firmas?.elaboro, cargo: `Elaboró – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
-  { firma: ins.firmas?.reviso, cargo: `Revisó – ${ins.encabezado.cargoReviso}`, nombre: ins.encabezado.revisadoPor },
+  { firma: ins.firmas?.elaboro, cargo: `Inspeccionó – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
+  ...(listaDe(ins).firmasPunto ? [] : [{ firma: ins.firmas?.responsable, cargo: "Responsable del área", nombre: ins.encabezado.responsableArea }]),
   ...ins.puntos.flatMap((p, i) =>
     firmasDePunto(listaDe(ins), p).filter((f) => f.id !== "inspector" || f.firma).map((f) => ({ firma: f.firma, cargo: `${f.rol} – ${p.nombre || `Punto ${i + 1}`}`, nombre: f.nombre })),
   ),

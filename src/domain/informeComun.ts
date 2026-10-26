@@ -87,8 +87,6 @@ export interface DatosGenerales {
   area: string;
   elaboradoPor: string;
   cargoElaboro: string;
-  revisadoPor: string;
-  cargoReviso: string;
   responsableArea: string;
 }
 
@@ -96,8 +94,7 @@ export function tablaDatosGenerales(e: DatosGenerales, periodo: string, resultad
   return `<table>
 <tr><td class="lbl">Tipo de inspección</td><td>${esc(e.tipoInspeccion)}</td><td class="lbl">Período (mes / año)</td><td>${periodo}</td></tr>
 <tr><td class="lbl">Fecha de inspección</td><td>${fecha(e.fecha)}</td><td class="lbl">Sede / Área inspeccionada</td><td>${esc(e.area)}</td></tr>
-<tr><td class="lbl">Elaborado por</td><td>${esc(e.elaboradoPor)}</td><td class="lbl">Cargo</td><td>${esc(e.cargoElaboro)}</td></tr>
-<tr><td class="lbl">Revisado por</td><td>${esc(e.revisadoPor)}</td><td class="lbl">Cargo</td><td>${esc(e.cargoReviso)}</td></tr>
+<tr><td class="lbl">Inspeccionado por</td><td>${esc(e.elaboradoPor)}</td><td class="lbl">Cargo</td><td>${esc(e.cargoElaboro)}</td></tr>
 <tr><td class="lbl">Responsable del área</td><td>${esc(e.responsableArea)}</td><td class="lbl">Resultado general</td><td>${esc(resultado)}</td></tr>
 </table>`;
 }
