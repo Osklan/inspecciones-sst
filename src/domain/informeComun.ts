@@ -63,3 +63,58 @@ export function filasEvidencias(evidencias: Evidencia[]): string {
   }
   return filas;
 }
+
+export interface CeldaFirma {
+  firma?: Firma;
+  cargo: string;
+  nombre: string;
+}
+
+/** Firmas de dos en dos por fila. */
+export function tablaFirmas(firmas: CeldaFirma[]): string {
+  let filas = "";
+  for (let i = 0; i < firmas.length; i += 2) {
+    const [a, b] = [firmas[i], firmas[i + 1]];
+    filas += `<tr>${celdaFirma(a.firma, a.cargo, a.nombre)}${b ? celdaFirma(b.firma, b.cargo, b.nombre) : '<td class="firma"></td>'}</tr>`;
+  }
+  return `<table>${filas}</table>`;
+}
+
+/** Encabezado común de los informes de locativas, equipos y botiquines. */
+export interface DatosGenerales {
+  tipoInspeccion: string;
+  fecha: string;
+  area: string;
+  elaboradoPor: string;
+  cargoElaboro: string;
+  revisadoPor: string;
+  cargoReviso: string;
+  responsableArea: string;
+}
+
+export function tablaDatosGenerales(e: DatosGenerales, periodo: string, resultado: string): string {
+  return `<table>
+<tr><td class="lbl">Tipo de inspección</td><td>${esc(e.tipoInspeccion)}</td><td class="lbl">Período (mes / año)</td><td>${periodo}</td></tr>
+<tr><td class="lbl">Fecha de inspección</td><td>${fecha(e.fecha)}</td><td class="lbl">Sede / Área inspeccionada</td><td>${esc(e.area)}</td></tr>
+<tr><td class="lbl">Elaborado por</td><td>${esc(e.elaboradoPor)}</td><td class="lbl">Cargo</td><td>${esc(e.cargoElaboro)}</td></tr>
+<tr><td class="lbl">Revisado por</td><td>${esc(e.revisadoPor)}</td><td class="lbl">Cargo</td><td>${esc(e.cargoReviso)}</td></tr>
+<tr><td class="lbl">Responsable del área</td><td>${esc(e.responsableArea)}</td><td class="lbl">Resultado general</td><td>${esc(resultado)}</td></tr>
+</table>`;
+}
+
+const parrafosDe = (s: string) => s.split(/\n+/).map((x) => x.trim()).filter(Boolean);
+
+/** Viñetas: cada línea escrita en la app es una. */
+export const vinetas = (s: string) => {
+  const ps = parrafosDe(s);
+  return ps.length ? `<ul>${ps.map((x) => `<li>${esc(x.replace(/^[-•]\s*/, ""))}</li>`).join("")}</ul>` : "<p>—</p>";
+};
+
+/** Párrafos: cada línea escrita en la app es uno. */
+export const parrafos = (s: string, vacio = "—") => {
+  const ps = parrafosDe(s);
+  return ps.length ? ps.map((x) => `<p>${esc(x)}</p>`).join("") : vacio ? `<p>${vacio}</p>` : "";
+};
+
+/** C / NC / NA en una celda de lista de verificación. */
+export const celdaRespuesta = (r?: string) => `<td class="c${r === "NC" ? " crit" : ""}">${r ?? ""}</td>`;

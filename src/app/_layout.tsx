@@ -21,6 +21,7 @@ export default function Layout() {
         <Stack.Screen name="inspeccion/[id]" options={{ title: "Verificación" }} />
         <Stack.Screen name="locativa/[id]" options={{ title: "Inspección locativa" }} />
         <Stack.Screen name="equipos/[id]" options={{ title: "Equipos y EPP" }} />
+        <Stack.Screen name="botiquin/[id]" options={{ title: "Botiquines" }} />
       </Stack>
     </SQLiteProvider>
   );

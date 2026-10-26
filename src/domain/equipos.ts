@@ -4,7 +4,7 @@
 import { CATEGORIAS_EQUIPOS, type CategoriaEquipo } from "../data/categoriasEquipos";
 import type { Firma } from "./firma";
 import type { EncabezadoLocativa } from "./locativas";
-import type { ResultadoEquipo } from "./tipos";
+import type { RespuestaItem, ResultadoEquipo } from "./tipos";
 
 export type EstadoHallazgo = "Abierto" | "En proceso" | "Cerrado";
 
@@ -22,6 +22,8 @@ export interface Equipo {
   codigoPrueba: string;
   /** Componentes presentes del kit, por índice (solo formato «kit»). */
   componentes?: Record<number, boolean>;
+  /** Lista de verificación: C / NC / NA por índice del aspecto de la categoría. */
+  aspectos?: Record<number, RespuestaItem | undefined>;
   resultado?: ResultadoEquipo;
   /** Para los equipos que no son aptos o están en prueba. */
   hallazgo: string;
@@ -40,6 +42,16 @@ export interface SeccionEquipos {
   equipos: Equipo[];
 }
 
+export type RolFirmante = "Propietario del EPP" | "Responsable presente";
+
+/** Firma de quien recibe la inspección: el dueño de su EPP o quien estuvo presente en la de los equipos de uso común. */
+export interface Firmante {
+  id: string;
+  nombre: string;
+  rol: RolFirmante;
+  firma?: Firma;
+}
+
 export interface InspeccionEquipos {
   id: string;
   tipo: "equipos";
@@ -51,6 +63,7 @@ export interface InspeccionEquipos {
   conclusiones: string;
   recomendaciones: string;
   firmas?: { elaboro?: Firma; reviso?: Firma };
+  firmantes?: Firmante[];
 }
 
 export function categoria(id: string): CategoriaEquipo {
@@ -154,4 +167,40 @@ export function calcularEquipos(ins: InspeccionEquipos): ResultadoEquipos {
     ? `Con hallazgos – ${noAptos.join("; ")}`
     : `Sin hallazgos – ${total} ${total === 1 ? "equipo apto" : "equipos aptos"}`;
   return { total, porResultado, sinResultado, vencidas, hallazgos, resumen };
+}
+
+/** Formatos en los que cada equipo tiene un dueño; en los demás el equipo es de uso común. */
+const PERSONALES = new Set(["inventario", "kit", "certificado"]);
+
+/**
+ * Firmantes que pide la inspección: un propietario por cada titular de EPP personal y, si hay
+ * equipos de uso común, al menos un responsable presente. Conserva las firmas ya tomadas.
+ */
+export function firmantesDe(ins: InspeccionEquipos): Firmante[] {
+  const guardados = ins.firmantes ?? [];
+  const clave = (n: string) => n.trim().toLowerCase();
+  const titulares = new Map<string, string>();
+  let comun = false;
+  for (const s of ins.secciones) {
+    const cat = categoria(s.categoriaId);
+    if (!PERSONALES.has(cat.formato)) comun ||= s.equipos.length > 0;
+    else for (const e of s.equipos) if (e.titular.trim() && !titulares.has(clave(e.titular))) titulares.set(clave(e.titular), e.titular.trim());
+  }
+  const propietarios = [...titulares].map(([k, nombre]) => {
+    const g = guardados.find((f) => f.rol === "Propietario del EPP" && clave(f.nombre) === k);
+    return g ? { ...g, nombre } : { id: `prop-${k}`, nombre, rol: "Propietario del EPP" as const };
+  });
+  const presentes = guardados.filter((f) => f.rol === "Responsable presente");
+  if (comun && !presentes.length) presentes.push({ id: "presente-1", nombre: "", rol: "Responsable presente" });
+  return [...propietarios, ...presentes];
+}
+
+/** Aspectos de la lista de verificación sin marcar, sumando todos los equipos. */
+export function aspectosSinMarcar(ins: InspeccionEquipos): number {
+  let n = 0;
+  for (const s of ins.secciones) {
+    const total = categoria(s.categoriaId).aspectos.length;
+    for (const e of s.equipos) for (let i = 0; i < total; i++) if (!e.aspectos?.[i]) n++;
+  }
+  return n;
 }

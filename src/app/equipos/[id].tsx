@@ -4,25 +4,30 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import type { CategoriaEquipo, FormatoTabla } from "@/data/categoriasEquipos";
-import { exportarPdf } from "@/media/exportar";
+import type { Documento } from "@/media/exportar";
 import { borrarFoto } from "@/media/fotos";
 import {
+  aspectosSinMarcar,
   calcularEquipos,
   categoria,
   faltantes,
+  firmantesDe,
   nombreEquipo,
   nuevoEquipo,
   venceEl,
   vigencia,
   type Equipo,
   type EstadoHallazgo,
+  type Firmante,
   type InspeccionEquipos,
   type SeccionEquipos,
 } from "@/domain/equipos";
-import { tituloInspeccion } from "@/domain/inspeccion";
+import { tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
 import type { ResultadoEquipo } from "@/domain/tipos";
 import { guardar, obtener } from "@/db/inspecciones";
 import { FotosEvidencia } from "@/ui/FotosEvidencia";
+import { OpcionesRespuesta } from "@/ui/OpcionesRespuesta";
+import { BotonesExportar } from "@/ui/BotonesExportar";
 import { PanelFirma } from "@/ui/PanelFirma";
 import { color, est } from "@/ui/tema";
 
@@ -48,7 +53,6 @@ export default function InspeccionEquiposPantalla() {
   const [ins, setIns] = useState<InspeccionEquipos | null>(null);
   const [sel, setSel] = useState(0);
   const [abierto, setAbierto] = useState<string | null>(null);
-  const [exportando, setExportando] = useState(false);
   const [firmando, setFirmando] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -76,6 +80,15 @@ export default function InspeccionEquiposPantalla() {
   const cambiarEquipo = (eid: string, cambio: (e: Equipo) => Equipo) =>
     cambiarSeccion((q) => ({ ...q, equipos: q.equipos.map((e) => (e.id === eid ? cambio(e) : e)) }));
 
+  const firmantes = firmantesDe(ins);
+  // Se guarda la lista completa para conservar las firmas aunque cambien los titulares.
+  const guardarFirmantes = (f: (l: Firmante[]) => Firmante[]) => actualizar((x) => ({ ...x, firmantes: f(firmantesDe(x)) }));
+  const cambiarFirmante = (f: Firmante, cambio: Partial<Firmante>) =>
+    guardarFirmantes((l) => l.map((x) => (x.id === f.id ? { ...x, ...cambio } : x)));
+  const quitarFirmante = (f: Firmante) => guardarFirmantes((l) => l.filter((x) => x.id !== f.id));
+  const agregarPresente = () =>
+    guardarFirmantes((l) => [...l, { id: `presente-${Date.now().toString(36)}`, nombre: "", rol: "Responsable presente" }]);
+
   function agregar(base?: Equipo) {
     const nuevo = { ...nuevoEquipo(`${ins!.id}-${Date.now().toString(36)}`, cat) };
     if (base) Object.assign(nuevo, { elemento: base.elemento, marca: base.marca, fechaPrueba: base.fechaPrueba, condicion: base.condicion });
@@ -95,21 +108,19 @@ export default function InspeccionEquiposPantalla() {
     ]);
   }
 
-  async function exportar() {
-    if (!ins) return;
+  async function preparar(doc: Documento): Promise<Inspeccion | null> {
+    if (!ins) return null;
     if (res!.sinResultado) {
       Alert.alert("Inspección incompleta", `Faltan ${res!.sinResultado} equipos sin resultado. Márcalos como Apto, No apto o En prueba antes de generar el informe.`);
-      return;
+      return null;
     }
-    setExportando(true);
-    try {
-      await guardar(db, ins);
-      await exportarPdf(ins);
-    } catch (e) {
-      Alert.alert("No se pudo generar el PDF", String((e as Error).message ?? e));
-    } finally {
-      setExportando(false);
+    const sinMarcar = aspectosSinMarcar(ins);
+    if (doc === "checklist" && sinMarcar) {
+      Alert.alert("Lista incompleta", `Faltan ${sinMarcar} aspectos por marcar en las listas de verificación de los equipos. Usa «Todo cumple» en cada equipo para marcar rápido los que están bien.`);
+      return null;
     }
+    await guardar(db, ins);
+    return ins;
   }
 
   return (
@@ -201,9 +212,39 @@ export default function InspeccionEquiposPantalla() {
         onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, reviso: f } }))}
       />
 
-      <Pressable style={[est.boton, exportando && { opacity: 0.6 }]} disabled={exportando} onPress={exportar}>
-        <Text style={est.botonTexto}>{exportando ? "Generando PDF…" : "Generar informe PDF y compartir"}</Text>
+      <View style={est.tarjeta}>
+        <Text style={est.subtitulo}>Firmas de quienes reciben la inspección</Text>
+        <Text style={est.tenue}>
+          Cada propietario firma por su EPP. En los equipos de uso común (trajes, caretas, pértigas, herramientas) firma quien estuvo presente.
+        </Text>
+      </View>
+      {firmantes.map((f) => (
+        <View key={f.id} style={{ gap: 6 }}>
+          {f.rol === "Responsable presente" && (
+            <View style={[est.tarjeta, { gap: 6 }]}>
+              <Text style={est.etiqueta}>Nombre del responsable presente</Text>
+              <TextInput style={est.input} value={f.nombre} onChangeText={(v) => cambiarFirmante(f, { nombre: v })} />
+              {firmantes.filter((x) => x.rol === "Responsable presente").length > 1 && (
+                <Pressable onPress={() => quitarFirmante(f)}>
+                  <Text style={[est.tenue, { color: color.rojo }]}>Quitar esta persona</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+          <PanelFirma
+            titulo={f.rol}
+            nombre={f.nombre}
+            firma={f.firma}
+            onFirmando={setFirmando}
+            onCambio={(firma) => cambiarFirmante(f, { firma })}
+          />
+        </View>
+      ))}
+      <Pressable style={[est.input, { alignItems: "center" }]} onPress={agregarPresente}>
+        <Text style={[est.texto, { color: color.azul, fontWeight: "700" }]}>+ Agregar otra persona presente</Text>
       </Pressable>
+
+      <BotonesExportar preparar={preparar} />
     </ScrollView>
   );
 }
@@ -223,6 +264,7 @@ interface TarjetaProps {
 function TarjetaEquipo({ n, e, cat, fechaInspeccion, abierto, onAbrir, onCambio, onDuplicar, onEliminar }: TarjetaProps) {
   const vig = vigencia(e, cat, fechaInspeccion);
   const falta = faltantes(e, cat);
+  const pendientes = cat.aspectos.filter((_, k) => !e.aspectos?.[k]).length;
   const set = (k: Campo, v: string) => onCambio((x) => ({ ...x, [k]: v }));
 
   return (
@@ -232,6 +274,7 @@ function TarjetaEquipo({ n, e, cat, fechaInspeccion, abierto, onAbrir, onCambio,
           <Text style={est.texto}>{n}. {nombreEquipo(e) || "Equipo sin nombre"}</Text>
           <Text style={est.tenue}>
             {e.resultado ?? "Sin resultado"}
+            {pendientes ? ` · ${pendientes} aspectos sin marcar` : ""}
             {falta.length ? ` · faltan ${falta.length}` : ""}
             {vig === "vencida" ? " · prueba vencida" : vig === "sin registro" ? " · sin fecha de prueba" : ""}
             {e.fotos.length ? ` · ${e.fotos.length} foto(s)` : ""}
@@ -273,6 +316,23 @@ function TarjetaEquipo({ n, e, cat, fechaInspeccion, abierto, onAbrir, onCambio,
               })}
             </View>
           )}
+
+          <View style={{ gap: 6 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={est.etiqueta}>Lista de verificación</Text>
+              {pendientes > 0 && (
+                <Pressable onPress={() => onCambio((x) => ({ ...x, aspectos: Object.fromEntries(cat.aspectos.map((_, k) => [k, x.aspectos?.[k] ?? "C"])) }))} style={[est.input, { paddingVertical: 6 }]}>
+                  <Text style={est.texto}>Todo cumple ({pendientes})</Text>
+                </Pressable>
+              )}
+            </View>
+            {cat.aspectos.map((a, k) => (
+              <View key={k} style={{ gap: 4 }}>
+                <Text style={est.texto}>{k + 1}. {a}</Text>
+                <OpcionesRespuesta valor={e.aspectos?.[k]} onElegir={(o) => onCambio((x) => ({ ...x, aspectos: { ...x.aspectos, [k]: o } }))} />
+              </View>
+            ))}
+          </View>
 
           <Text style={est.etiqueta}>Resultado</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>

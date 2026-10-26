@@ -2,6 +2,7 @@
 import type { Respuestas } from "./controlOperacional";
 import type { Firma } from "./firma";
 import { LISTAS_LOCATIVAS } from "../data/listasLocativas";
+import { nuevoBotiquin, OBJETIVO_BOTIQUINES, type InspeccionBotiquines } from "./botiquines";
 import { categoria, copiarSecciones, nuevoEquipo, objetivoEquipos, type InspeccionEquipos } from "./equipos";
 import { listaDe, nuevoPunto, objetivoPorDefecto, type InspeccionLocativa } from "./locativas";
 import type { TipoInspeccion } from "./tipos";
@@ -33,7 +34,7 @@ export interface InspeccionFrente {
   firmas?: { oinac?: Firma; contratista?: Firma };
 }
 
-export type Inspeccion = InspeccionFrente | InspeccionLocativa | InspeccionEquipos;
+export type Inspeccion = InspeccionFrente | InspeccionLocativa | InspeccionEquipos | InspeccionBotiquines;
 
 export const PROYECTO_POR_DEFECTO = "Ampliación y modernización Aeropuerto Internacional Rafael Núñez";
 
@@ -131,7 +132,45 @@ export function nuevaInspeccionEquipos(categorias: string[], anterior?: Inspecci
   };
 }
 
+export function nuevaInspeccionBotiquines(anterior?: InspeccionBotiquines, ahora = new Date()): InspeccionBotiquines {
+  const id = nuevoId(ahora.getTime());
+  // Se repiten las ubicaciones y responsables de la inspección anterior, sin lo registrado.
+  const botiquines = anterior?.botiquines.length
+    ? anterior.botiquines.map((b, k) => ({ ...nuevoBotiquin(`${id}-${k}`), area: b.area, responsable: b.responsable }))
+    : [nuevoBotiquin(`${id}-0`)];
+  return {
+    id,
+    tipo: "botiquines",
+    creado: ahora.getTime(),
+    actualizado: ahora.getTime(),
+    encabezado: {
+      proyecto: anterior?.encabezado.proyecto ?? PROYECTO_POR_DEFECTO,
+      tipoInspeccion: anterior?.encabezado.tipoInspeccion ?? "Planeada – Mensual",
+      fecha: fechaIso(ahora),
+      area: anterior?.encabezado.area ?? "",
+      responsableArea: anterior?.encabezado.responsableArea ?? "",
+      elaboradoPor: anterior?.encabezado.elaboradoPor ?? "",
+      cargoElaboro: anterior?.encabezado.cargoElaboro ?? "Profesional SST",
+      revisadoPor: anterior?.encabezado.revisadoPor ?? "",
+      cargoReviso: anterior?.encabezado.cargoReviso ?? "Coordinador SST",
+    },
+    objetivo: OBJETIVO_BOTIQUINES,
+    botiquines,
+    conclusiones: "",
+    recomendaciones: "",
+  };
+}
+
+/** Todas las fotos de evidencia de una inspección. */
+export function fotosDe(i: Inspeccion): string[] {
+  if (i.tipo === "botiquines") return i.botiquines.flatMap((b) => b.fotos);
+  if (i.tipo === "equipos") return i.secciones.flatMap((s) => s.equipos.flatMap((e) => e.fotos));
+  if (i.tipo === "locativas") return i.puntos.flatMap((p) => p.fotos);
+  return Object.values(i.respuestas).flatMap((r) => r?.fotos ?? []);
+}
+
 export function tituloInspeccion(i: Inspeccion): string {
+  if (i.tipo === "botiquines") return ["Botiquines", i.encabezado.area].filter(Boolean).join(" – ");
   if (i.tipo === "equipos") return ["Equipos y EPP", i.encabezado.area].filter(Boolean).join(" – ");
   if (i.tipo === "locativas") return [listaDe(i).nombre, i.encabezado.area].filter(Boolean).join(" – ");
   const e = i.encabezado;
@@ -142,4 +181,5 @@ export const ETIQUETA_TIPO: Record<TipoInspeccion, string> = {
   frentes: "Frente de trabajo",
   equipos: "Equipos y EPP",
   locativas: "Condiciones locativas",
+  botiquines: "Botiquines",
 };

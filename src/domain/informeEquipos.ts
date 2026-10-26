@@ -1,16 +1,9 @@
 // HTML del informe de herramientas, equipos y EPP, con el formato de los informes mensuales
 // de OINAC (equipos contra caídas; LOTO y equipos dieléctricos).
 import type { CategoriaEquipo } from "../data/categoriasEquipos";
-import { calcularEquipos, categoria, faltantes, nombreEquipo, vigencia, type Equipo, type InspeccionEquipos, type SeccionEquipos } from "./equipos";
-import { cabecera, celdaFirma, CSS, esc, fecha, filasEvidencias, limpio } from "./informeComun";
+import { calcularEquipos, categoria, faltantes, firmantesDe, nombreEquipo, vigencia, type Equipo, type InspeccionEquipos, type SeccionEquipos } from "./equipos";
+import { cabecera, CSS, esc, fecha, filasEvidencias, limpio, parrafos, tablaDatosGenerales, tablaFirmas, vinetas, type CeldaFirma } from "./informeComun";
 import { periodo } from "./locativas";
-
-const parrafos = (s: string) => s.split(/\n+/).map((x) => x.trim()).filter(Boolean);
-const lista = (s: string) => {
-  const ps = parrafos(s);
-  return ps.length ? `<ul>${ps.map((x) => `<li>${esc(x.replace(/^[-•]\s*/, ""))}</li>`).join("")}</ul>` : "<p>—</p>";
-};
-const texto = (s: string) => parrafos(s).map((x) => `<p>${esc(x)}</p>`).join("");
 
 const resultado = (e: Equipo) => `<td class="c ${e.resultado && e.resultado !== "Apto" ? "crit" : ""}">${esc(e.resultado ?? "—")}</td>`;
 
@@ -70,7 +63,7 @@ export function informeEquiposHtml(ins: InspeccionEquipos, fotos: Record<string,
   const resultados = ins.secciones
     .map((s, i) => {
       const cat = cats[i];
-      return `<p><b>5.${i + 1} ${esc(cat.nombre)}</b></p>${texto(s.texto)}${s.equipos.length ? tabla(s, cat, e.fecha) : "<p>No se inspeccionaron equipos de esta categoría.</p>"}`;
+      return `<p><b>5.${i + 1} ${esc(cat.nombre)}</b></p>${parrafos(s.texto, "")}${s.equipos.length ? tabla(s, cat, e.fecha) : "<p>No se inspeccionaron equipos de esta categoría.</p>"}`;
     })
     .join("");
 
@@ -94,16 +87,10 @@ export function informeEquiposHtml(ins: InspeccionEquipos, fotos: Record<string,
 ${cabecera(esc(titulo), esc(e.proyecto))}
 
 ${bar("DATOS GENERALES")}
-<table>
-<tr><td class="lbl">Tipo de inspección</td><td>${esc(e.tipoInspeccion)}</td><td class="lbl">Período (mes / año)</td><td>${periodo(e.fecha)}</td></tr>
-<tr><td class="lbl">Fecha de inspección</td><td>${fecha(e.fecha)}</td><td class="lbl">Sede / Área inspeccionada</td><td>${esc(e.area)}</td></tr>
-<tr><td class="lbl">Elaborado por</td><td>${esc(e.elaboradoPor)}</td><td class="lbl">Cargo</td><td>${esc(e.cargoElaboro)}</td></tr>
-<tr><td class="lbl">Revisado por</td><td>${esc(e.revisadoPor)}</td><td class="lbl">Cargo</td><td>${esc(e.cargoReviso)}</td></tr>
-<tr><td class="lbl">Responsable del área</td><td>${esc(e.responsableArea)}</td><td class="lbl">Resultado general</td><td>${esc(r.resumen)}</td></tr>
-</table>
+${tablaDatosGenerales(e, periodo(e.fecha), r.resumen)}
 
 ${bar("OBJETIVO")}
-${texto(ins.objetivo) || "<p>—</p>"}
+${parrafos(ins.objetivo)}
 
 ${bar("ALCANCE – EQUIPOS INSPECCIONADOS")}
 <p>La inspección comprendió los siguientes equipos${e.area ? ` del área de ${esc(e.area)}` : ""}:</p>
@@ -121,17 +108,24 @@ ${bar("HALLAZGOS Y PLAN DE ACCIÓN")}
 ${r.hallazgos.length ? `<table><tr><th class="c">N°</th><th style="width:32%">Hallazgo</th><th>Riesgo asociado</th><th>Acción recomendada</th><th>Estado</th></tr>${filasHallazgos}</table>` : "<p>No se registraron hallazgos: todos los equipos inspeccionados son aptos.</p>"}
 
 ${bar("CONCLUSIONES")}
-${lista(ins.conclusiones)}
+${vinetas(ins.conclusiones)}
 
 ${bar("RECOMENDACIONES")}
-${lista(ins.recomendaciones)}
+${vinetas(ins.recomendaciones)}
 
 ${bar("FIRMAS")}
-<table><tr>${celdaFirma(ins.firmas?.elaboro, `Elaboró – ${e.cargoElaboro}`, e.elaboradoPor)}${celdaFirma(ins.firmas?.reviso, `Revisó – ${e.cargoReviso}`, e.revisadoPor)}</tr></table>
+${tablaFirmas(firmasInforme(ins))}
 
 ${evidencias.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
 </body></html>`;
 }
+
+/** SST que elabora y revisa, propietarios del EPP y responsables presentes. */
+export const firmasInforme = (ins: InspeccionEquipos): CeldaFirma[] => [
+  { firma: ins.firmas?.elaboro, cargo: `Elaboró – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
+  { firma: ins.firmas?.reviso, cargo: `Revisó – ${ins.encabezado.cargoReviso}`, nombre: ins.encabezado.revisadoPor },
+  ...firmantesDe(ins).map((f) => ({ firma: f.firma, cargo: f.rol, nombre: f.nombre })),
+];
 
 export function nombreArchivoEquipos(ins: InspeccionEquipos): string {
   return `Inspeccion_Equipos${ins.encabezado.area ? `_${limpio(ins.encabezado.area)}` : ""}_${ins.encabezado.fecha}.pdf`;

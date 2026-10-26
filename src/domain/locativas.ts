@@ -13,6 +13,8 @@ export interface PuntoLocativo {
   nombre: string;
   /** Respuesta por índice del aspecto en la lista. */
   respuestas: Record<number, RespuestaItem | undefined>;
+  /** Observación por aspecto (columna OBSERVACIONES de la lista de verificación). */
+  observaciones?: Record<number, string>;
   /** Descripción del hallazgo: qué se encontró. */
   hallazgo: string;
   riesgo: string;
@@ -53,6 +55,7 @@ export function listaDe(ins: Pick<InspeccionLocativa, "listaId">): ListaLocativa
 }
 
 export function objetivoPorDefecto(lista: ListaLocativa): string {
+  if (lista.objetivo) return lista.objetivo;
   return `Identificar las condiciones de ${lista.nombre.toLowerCase()} de los puntos inspeccionados, verificando ${lista.aspectos
     .map((a) => a.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase()))
     .slice(0, 3)
@@ -128,3 +131,6 @@ export function periodo(fechaIso: string): string {
   const m = /^(\d{4})-(\d{2})/.exec(fechaIso);
   return m ? `${MESES[Number(m[2]) - 1]}/${m[1]}` : "";
 }
+
+/** Subtítulo que empieza en el aspecto `i`, si lo hay. */
+export const grupoEn = (lista: ListaLocativa, i: number) => lista.grupos?.find((g) => g.desde === i)?.titulo;
