@@ -5,6 +5,7 @@ import {
   cabecera,
   CSS,
   esc,
+  evidenciasVisita,
   fecha,
   filasEvidencias,
   limpio,
@@ -52,9 +53,11 @@ export function informeBotiquinesHtml(ins: InspeccionBotiquines, fotos: Record<s
     })
     .join("");
 
-  const filasEv = filasEvidencias(
-    evidencias.map((x) => ({ n: x.n, b64: fotos[x.uri], descripcion: `Botiquín – ${esc(nombre(x.b, x.i))}.`, fecha: e.fecha })),
-  );
+  const visita = evidenciasVisita(ins.fotosVisita, n, fotos, e.area, e.fecha);
+  const filasEv = filasEvidencias([
+    ...evidencias.map((x) => ({ n: x.n, b64: fotos[x.uri], descripcion: `Botiquín – ${esc(nombre(x.b, x.i))}.`, fecha: e.fecha })),
+    ...visita,
+  ]);
 
   let sec = 0;
   const bar = (t: string, extra = "") => `<div class="bar"${extra}>${++sec}. ${t}</div>`;
@@ -91,7 +94,7 @@ ${vinetas(ins.recomendaciones)}
 ${bar("FIRMAS")}
 ${tablaFirmas(firmasBotiquines(ins))}
 
-${evidencias.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
+${evidencias.length + visita.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
 </body></html>`;
 }
 

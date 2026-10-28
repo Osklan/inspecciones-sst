@@ -53,6 +53,8 @@ export interface InspeccionLocativa {
   recomendaciones: string;
   /** `reviso` queda de versiones anteriores: ya no se pide ni se imprime. */
   firmas?: { elaboro?: Firma; reviso?: Firma; responsable?: Firma };
+  /** Fotos de la visita, aunque no haya hallazgos; salen al final del anexo fotográfico. */
+  fotosVisita?: string[];
 }
 
 export function listaDe(ins: Pick<InspeccionLocativa, "listaId">): ListaLocativa {

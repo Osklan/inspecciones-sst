@@ -218,6 +218,12 @@ export default function InspeccionLocativaPantalla() {
       </View>
 
       <View style={est.tarjeta}>
+        <Text style={est.subtitulo}>Fotos de la visita</Text>
+        <Text style={est.tenue}>Registro fotográfico de la visita, haya o no hallazgos. Salen al final del anexo fotográfico del informe.</Text>
+        <FotosEvidencia fotos={ins.fotosVisita ?? []} onCambio={(c) => actualizar((x) => ({ ...x, fotosVisita: c(x.fotosVisita ?? []) }))} />
+      </View>
+
+      <View style={est.tarjeta}>
         <Text style={est.subtitulo}>Textos del informe</Text>
         {TEXTOS_INFORME.map(([k, label, ayuda]) => (
           <View key={k} style={{ gap: 4 }}>

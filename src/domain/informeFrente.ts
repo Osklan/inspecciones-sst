@@ -2,7 +2,7 @@
 // El PDF se genera a partir de este HTML con expo-print.
 import { SST_FO_070, SST_FO_070_VERSION } from "../data/sstFo070";
 import { bloquesActivos, calcularResultado, generarPlanAccion, marcarNoAplica } from "./controlOperacional";
-import { cabecera, celdaFirma, CSS, esc, fecha, filasEvidencias, limpio } from "./informeComun";
+import { cabecera, celdaFirma, CSS, esc, evidenciasVisita, fecha, filasEvidencias, limpio } from "./informeComun";
 import type { InspeccionFrente } from "./inspeccion";
 
 const REFERENCIAS = [
@@ -46,13 +46,15 @@ export function informeFrenteHtml(ins: InspeccionFrente, fotos: Record<string, s
     .map((p, i) => `<tr><td class="c">${i + 1}</td><td>${p.codigo}</td><td>${esc(p.item)}</td><td class="${p.criticidad === "Crítico" ? "crit" : ""}">${p.criticidad}</td><td>${esc(p.hallazgo)}${evRef(p.codigo)}</td><td class="c">${fecha(p.fechaLimite)}</td></tr>`)
     .join("");
 
-  const filasEv = filasEvidencias(
-    evidencias.map((x) => ({
+  const visita = evidenciasVisita(ins.fotosVisita, n, fotos, [e.contratista, e.ubicacion].filter(Boolean).join(", "), e.fecha);
+  const filasEv = filasEvidencias([
+    ...evidencias.map((x) => ({
       n: x.n,
       b64: fotos[x.uri],
       descripcion: `${x.codigo} – ${esc(items.get(x.codigo)?.criterio ?? "")}${x.hallazgo ? ` ${esc(x.hallazgo)}` : ""}`,
     })),
-  );
+    ...visita,
+  ]);
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
 ${cabecera("INFORME DE INSPECCIÓN DE FRENTES DE TRABAJO")}
@@ -90,7 +92,7 @@ ${plan.length ? `<table><tr><th class="c">N°</th><th>Código</th><th>Ítem no c
 <div class="bar">6. REFERENCIAS NORMATIVAS</div>
 <ul>${REFERENCIAS.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
 
-${evidencias.length ? `<div class="bar" style="page-break-before:always">7. ANEXO – EVIDENCIA FOTOGRÁFICA</div><table class="ev">${filasEv}</table>` : ""}
+${evidencias.length + visita.length ? `<div class="bar" style="page-break-before:always">7. ANEXO – EVIDENCIA FOTOGRÁFICA</div><table class="ev">${filasEv}</table>` : ""}
 </body></html>`;
 }
 

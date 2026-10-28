@@ -64,6 +64,16 @@ export function filasEvidencias(evidencias: Evidencia[]): string {
   return filas;
 }
 
+/** Fotos de la visita, numeradas a continuación de las de los hallazgos. */
+export function evidenciasVisita(uris: string[] | undefined, desde: number, fotos: Record<string, string>, lugar: string, fechaIso?: string): Evidencia[] {
+  return (uris ?? []).map((uri, i) => ({
+    n: desde + i + 1,
+    b64: fotos[uri],
+    descripcion: `Registro fotográfico de la visita${lugar.trim() ? ` – ${esc(lugar.trim())}` : ""}.`,
+    fecha: fechaIso,
+  }));
+}
+
 export interface CeldaFirma {
   firma?: Firma;
   cargo: string;

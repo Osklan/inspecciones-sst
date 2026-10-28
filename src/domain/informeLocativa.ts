@@ -1,6 +1,6 @@
 // HTML del informe de condiciones locativas, con el formato del informe de baños CCNC.
 import { calcularLocativa, firmasDePunto, listaDe, periodo, type InspeccionLocativa } from "./locativas";
-import { cabecera, CSS, esc, fecha, filasEvidencias, limpio, parrafos, tablaDatosGenerales, tablaFirmas, vinetas, type CeldaFirma } from "./informeComun";
+import { cabecera, CSS, esc, evidenciasVisita, fecha, filasEvidencias, limpio, parrafos, tablaDatosGenerales, tablaFirmas, vinetas, type CeldaFirma } from "./informeComun";
 
 const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)} %`);
 
@@ -39,14 +39,16 @@ export function informeLocativaHtml(ins: InspeccionLocativa, fotos: Record<strin
     .join("");
   const filasNormas = l.normas.map((x) => `<tr><td>${esc(x.aspecto)}</td><td>${esc(x.requisito)}</td><td>${esc(x.fuente)}</td></tr>`).join("");
 
-  const filasEv = filasEvidencias(
-    evidencias.map((x) => ({
+  const visita = evidenciasVisita(ins.fotosVisita, n, fotos, e.area, e.fecha);
+  const filasEv = filasEvidencias([
+    ...evidencias.map((x) => ({
       n: x.n,
       b64: fotos[x.uri],
       descripcion: `Hallazgo N° ${x.h} – ${esc(x.p.nombre)}.`,
       fecha: e.fecha,
     })),
-  );
+    ...visita,
+  ]);
 
   let sec = 0;
   const bar = (t: string, extra = "") => `<div class="bar"${extra}>${++sec}. ${t}</div>`;
@@ -90,7 +92,7 @@ ${l.normas.length ? `${bar("REQUISITOS NORMATIVOS DE REFERENCIA")}<table><tr><th
 ${bar("FIRMAS")}
 ${tablaFirmas(firmasInforme(ins))}
 
-${evidencias.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
+${evidencias.length + visita.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
 </body></html>`;
 }
 

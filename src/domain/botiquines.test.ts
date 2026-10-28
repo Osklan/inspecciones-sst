@@ -56,6 +56,9 @@ describe("botiquines (SST-FO-077)", () => {
     expect(inf).toContain("Almacén &lt;LEGGO&gt;");
     expect(inf).toContain("(Ver evidencia N° 1)");
     expect(inf).toContain("Responsable – Oficina RCH");
+    ins.fotosVisita = ["file:///v.jpg"];
+    expect(informeBotiquinesHtml(ins)).toContain("EVIDENCIA N° 2</b></td>");
+    expect(informeBotiquinesHtml(ins)).toContain("Registro fotográfico de la visita – Frentes de obra.");
     const chk = checklistBotiquinesHtml(ins);
     expect(chk.match(/INSPECCIÓN DE BOTIQUÍN</g)).toHaveLength(2);
     expect(chk).toContain("SST-FO-077 V01");

@@ -217,6 +217,12 @@ export default function InspeccionBotiquinesPantalla() {
       </View>
 
       <View style={est.tarjeta}>
+        <Text style={est.subtitulo}>Fotos de la visita</Text>
+        <Text style={est.tenue}>Registro fotográfico de la visita, haya o no hallazgos. Salen al final del anexo fotográfico del informe.</Text>
+        <FotosEvidencia fotos={ins.fotosVisita ?? []} onCambio={(c) => actualizar((x) => ({ ...x, fotosVisita: c(x.fotosVisita ?? []) }))} />
+      </View>
+
+      <View style={est.tarjeta}>
         <Text style={est.subtitulo}>Textos del informe</Text>
         {([["objetivo", "Objetivo", ""], ["conclusiones", "Conclusiones", "Una por línea."], ["recomendaciones", "Recomendaciones", "Una por línea."]] as const).map(([k, label, ayuda]) => (
           <View key={k} style={{ gap: 4 }}>

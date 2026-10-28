@@ -72,6 +72,8 @@ export interface InspeccionEquipos {
   conclusiones: string;
   recomendaciones: string;
   firmas?: { elaboro?: Firma; reviso?: Firma };
+  /** Fotos de la visita, aunque no haya hallazgos; salen al final del anexo fotográfico. */
+  fotosVisita?: string[];
   firmantes?: Firmante[];
 }
 

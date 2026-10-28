@@ -2,7 +2,7 @@
 // de OINAC (equipos contra caídas; LOTO y equipos dieléctricos).
 import type { CategoriaEquipo } from "../data/categoriasEquipos";
 import { calcularEquipos, categoria, faltantes, firmantesDe, nombreEquipo, vigencia, type Equipo, type InspeccionEquipos, type SeccionEquipos } from "./equipos";
-import { cabecera, CSS, esc, fecha, filasEvidencias, limpio, parrafos, tablaDatosGenerales, tablaFirmas, vinetas, type CeldaFirma } from "./informeComun";
+import { cabecera, CSS, esc, evidenciasVisita, fecha, filasEvidencias, limpio, parrafos, tablaDatosGenerales, tablaFirmas, vinetas, type CeldaFirma } from "./informeComun";
 import { periodo } from "./locativas";
 
 const resultado = (e: Equipo) => `<td class="c ${e.resultado && e.resultado !== "Apto" ? "crit" : ""}">${esc(e.resultado ?? "—")}</td>`;
@@ -71,14 +71,16 @@ export function informeEquiposHtml(ins: InspeccionEquipos, fotos: Record<string,
     .map((h, i) => `<tr><td class="c">${i + 1}</td><td>${esc(h.texto)}${evRef(h.equipo.id)}</td><td>${esc(h.equipo.riesgo)}</td><td>${esc(h.equipo.accion)}</td><td>${esc(h.equipo.estado)}</td></tr>`)
     .join("");
 
-  const filasEv = filasEvidencias(
-    evidencias.map((x) => ({
+  const visita = evidenciasVisita(ins.fotosVisita, n, fotos, e.area, e.fecha);
+  const filasEv = filasEvidencias([
+    ...evidencias.map((x) => ({
       n: x.n,
       b64: fotos[x.uri],
       descripcion: `${esc(nombreEquipo(x.q) || "Equipo")}${x.q.serial ? `, serial ${esc(x.q.serial)}` : ""}.${x.q.condicion ? ` ${esc(x.q.condicion)}` : ""}`,
       fecha: e.fecha,
     })),
-  );
+    ...visita,
+  ]);
 
   let sec = 0;
   const bar = (t: string, extra = "") => `<div class="bar"${extra}>${++sec}. ${t}</div>`;
@@ -116,7 +118,7 @@ ${vinetas(ins.recomendaciones)}
 ${bar("FIRMAS")}
 ${tablaFirmas(firmasInforme(ins))}
 
-${evidencias.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
+${evidencias.length + visita.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
 </body></html>`;
 }
 
