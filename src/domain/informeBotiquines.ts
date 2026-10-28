@@ -5,6 +5,7 @@ import {
   cabecera,
   CSS,
   esc,
+  evidenciasVisita,
   fecha,
   filasEvidencias,
   limpio,
@@ -21,8 +22,7 @@ const nombre = (b: { area: string }, i: number) => b.area.trim() || `Botiquín $
 
 /** SST que elabora y revisa, y el responsable de cada botiquín. */
 export const firmasBotiquines = (ins: InspeccionBotiquines): CeldaFirma[] => [
-  { firma: ins.firmas?.elaboro, cargo: `Elaboró – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
-  { firma: ins.firmas?.reviso, cargo: `Revisó – ${ins.encabezado.cargoReviso}`, nombre: ins.encabezado.revisadoPor },
+  { firma: ins.firmas?.elaboro, cargo: `Inspeccionó – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
   ...ins.botiquines.map((b, i) => ({ firma: b.firma, cargo: `Responsable – ${nombre(b, i)}`, nombre: b.responsable })),
 ];
 
@@ -53,15 +53,17 @@ export function informeBotiquinesHtml(ins: InspeccionBotiquines, fotos: Record<s
     })
     .join("");
 
-  const filasEv = filasEvidencias(
-    evidencias.map((x) => ({ n: x.n, b64: fotos[x.uri], descripcion: `Botiquín – ${esc(nombre(x.b, x.i))}.`, fecha: e.fecha })),
-  );
+  const visita = evidenciasVisita(ins.fotosVisita, n, fotos, e.area, e.fecha);
+  const filasEv = filasEvidencias([
+    ...evidencias.map((x) => ({ n: x.n, b64: fotos[x.uri], descripcion: `Botiquín – ${esc(nombre(x.b, x.i))}.`, fecha: e.fecha })),
+    ...visita,
+  ]);
 
   let sec = 0;
   const bar = (t: string, extra = "") => `<div class="bar"${extra}>${++sec}. ${t}</div>`;
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
-${cabecera("INFORME DE INSPECCIÓN DE BOTIQUINES", esc(e.proyecto))}
+${cabecera("INFORME DE INSPECCIÓN DE BOTIQUINES")}
 
 ${bar("DATOS GENERALES")}
 ${tablaDatosGenerales(e, periodo(e.fecha), r.resumen)}
@@ -92,7 +94,7 @@ ${vinetas(ins.recomendaciones)}
 ${bar("FIRMAS")}
 ${tablaFirmas(firmasBotiquines(ins))}
 
-${evidencias.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
+${evidencias.length + visita.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
 </body></html>`;
 }
 

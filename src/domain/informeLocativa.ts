@@ -1,6 +1,6 @@
 // HTML del informe de condiciones locativas, con el formato del informe de baños CCNC.
-import { calcularLocativa, listaDe, periodo, type InspeccionLocativa } from "./locativas";
-import { cabecera, CSS, esc, fecha, filasEvidencias, limpio, parrafos, tablaDatosGenerales, tablaFirmas, vinetas, type CeldaFirma } from "./informeComun";
+import { calcularLocativa, firmasDePunto, listaDe, periodo, type InspeccionLocativa } from "./locativas";
+import { cabecera, CSS, esc, evidenciasVisita, fecha, filasEvidencias, limpio, parrafos, tablaDatosGenerales, tablaFirmas, vinetas, type CeldaFirma } from "./informeComun";
 
 const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)} %`);
 
@@ -9,7 +9,7 @@ export function informeLocativaHtml(ins: InspeccionLocativa, fotos: Record<strin
   const e = ins.encabezado;
   const l = listaDe(ins);
   const r = calcularLocativa(ins);
-  const titulo = `INFORME DE INSPECCIÓN DE ${l.nombre.toUpperCase()}${e.area ? ` – ${e.area.toUpperCase()}` : ""}`;
+  const titulo = `INFORME DE INSPECCIÓN DE ${l.nombre.toUpperCase()}`;
 
   // Las evidencias se numeran en el orden de los hallazgos.
   let n = 0;
@@ -39,20 +39,22 @@ export function informeLocativaHtml(ins: InspeccionLocativa, fotos: Record<strin
     .join("");
   const filasNormas = l.normas.map((x) => `<tr><td>${esc(x.aspecto)}</td><td>${esc(x.requisito)}</td><td>${esc(x.fuente)}</td></tr>`).join("");
 
-  const filasEv = filasEvidencias(
-    evidencias.map((x) => ({
+  const visita = evidenciasVisita(ins.fotosVisita, n, fotos, e.area, e.fecha);
+  const filasEv = filasEvidencias([
+    ...evidencias.map((x) => ({
       n: x.n,
       b64: fotos[x.uri],
       descripcion: `Hallazgo N° ${x.h} – ${esc(x.p.nombre)}.`,
       fecha: e.fecha,
     })),
-  );
+    ...visita,
+  ]);
 
   let sec = 0;
   const bar = (t: string, extra = "") => `<div class="bar"${extra}>${++sec}. ${t}</div>`;
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
-${cabecera(esc(titulo), esc(e.proyecto))}
+${cabecera(esc(titulo))}
 
 ${bar("DATOS GENERALES")}
 ${tablaDatosGenerales(e, periodo(e.fecha), r.resumen)}
@@ -90,13 +92,16 @@ ${l.normas.length ? `${bar("REQUISITOS NORMATIVOS DE REFERENCIA")}<table><tr><th
 ${bar("FIRMAS")}
 ${tablaFirmas(firmasInforme(ins))}
 
-${evidencias.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
+${evidencias.length + visita.length ? `${bar("ANEXO – EVIDENCIA FOTOGRÁFICA", ' style="page-break-before:always"')}<table class="ev">${filasEv}</table>` : ""}
 </body></html>`;
 }
 
 export const firmasInforme = (ins: InspeccionLocativa): CeldaFirma[] => [
-  { firma: ins.firmas?.elaboro, cargo: `Elaboró – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
-  { firma: ins.firmas?.reviso, cargo: `Revisó – ${ins.encabezado.cargoReviso}`, nombre: ins.encabezado.revisadoPor },
+  { firma: ins.firmas?.elaboro, cargo: `Inspeccionó – ${ins.encabezado.cargoElaboro}`, nombre: ins.encabezado.elaboradoPor },
+  ...(listaDe(ins).firmasPunto ? [] : [{ firma: ins.firmas?.responsable, cargo: "Responsable del área", nombre: ins.encabezado.responsableArea }]),
+  ...ins.puntos.flatMap((p, i) =>
+    firmasDePunto(listaDe(ins), p).filter((f) => f.id !== "inspector" || f.firma).map((f) => ({ firma: f.firma, cargo: `${f.rol} – ${p.nombre || `Punto ${i + 1}`}`, nombre: f.nombre })),
+  ),
 ];
 
 export function nombreArchivoLocativa(ins: InspeccionLocativa): string {

@@ -143,6 +143,12 @@ export default function Verificacion() {
       )}
 
       <View style={est.tarjeta}>
+        <Text style={est.subtitulo}>Fotos de la visita</Text>
+        <Text style={est.tenue}>Evidencia de control operacional, haya o no hallazgos. Sale al final del anexo fotográfico del informe.</Text>
+        <FotosEvidencia fotos={ins.fotosVisita ?? []} onCambio={(c) => actualizar((x) => ({ ...x, fotosVisita: c(x.fotosVisita ?? []) }))} />
+      </View>
+
+      <View style={est.tarjeta}>
         <Text style={est.subtitulo}>Acciones tomadas en sitio</Text>
         <TextInput style={[est.input, { minHeight: 80 }]} multiline value={ins.accionesEnSitio} onChangeText={(v) => actualizar((x) => ({ ...x, accionesEnSitio: v }))} />
       </View>

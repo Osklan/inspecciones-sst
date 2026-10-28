@@ -32,6 +32,8 @@ export interface InspeccionFrente {
   respuestas: Respuestas;
   accionesEnSitio: string;
   firmas?: { oinac?: Firma; contratista?: Firma };
+  /** Fotos de la visita, aunque no haya hallazgos; salen al final del anexo fotográfico. */
+  fotosVisita?: string[];
 }
 
 export type Inspeccion = InspeccionFrente | InspeccionLocativa | InspeccionEquipos | InspeccionBotiquines;
@@ -163,10 +165,11 @@ export function nuevaInspeccionBotiquines(anterior?: InspeccionBotiquines, ahora
 
 /** Todas las fotos de evidencia de una inspección. */
 export function fotosDe(i: Inspeccion): string[] {
-  if (i.tipo === "botiquines") return i.botiquines.flatMap((b) => b.fotos);
-  if (i.tipo === "equipos") return i.secciones.flatMap((s) => s.equipos.flatMap((e) => e.fotos));
-  if (i.tipo === "locativas") return i.puntos.flatMap((p) => p.fotos);
-  return Object.values(i.respuestas).flatMap((r) => r?.fotos ?? []);
+  const visita = i.fotosVisita ?? [];
+  if (i.tipo === "botiquines") return [...i.botiquines.flatMap((b) => b.fotos), ...visita];
+  if (i.tipo === "equipos") return [...i.secciones.flatMap((s) => s.equipos.flatMap((e) => e.fotos)), ...visita];
+  if (i.tipo === "locativas") return [...i.puntos.flatMap((p) => p.fotos), ...visita];
+  return [...Object.values(i.respuestas).flatMap((r) => r?.fotos ?? []), ...visita];
 }
 
 export function tituloInspeccion(i: Inspeccion): string {
