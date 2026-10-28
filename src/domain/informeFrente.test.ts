@@ -52,7 +52,7 @@ describe("informe del SST-FO-070", () => {
     expect(fotosDe(i)).toEqual(["file:///a.jpg", "file:///b.jpg", "file:///v1.jpg"]);
     const html = informeFrenteHtml(i, { "file:///v1.jpg": "VklT" });
     expect(html).toContain("EVIDENCIA N° 3");
-    expect(html).toContain("Registro fotográfico de la visita – Contratista LEGGO &lt;obra&gt;, Plataforma norte.");
+    expect(html).toContain("Evidencia de control operacional – Contratista LEGGO &lt;obra&gt;, Plataforma norte.");
     expect(html).toContain("data:image/jpeg;base64,VklT");
 
     const sinNc = nuevaInspeccionFrente(undefined, new Date(2026, 9, 19));

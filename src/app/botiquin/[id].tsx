@@ -218,7 +218,7 @@ export default function InspeccionBotiquinesPantalla() {
 
       <View style={est.tarjeta}>
         <Text style={est.subtitulo}>Fotos de la visita</Text>
-        <Text style={est.tenue}>Registro fotográfico de la visita, haya o no hallazgos. Salen al final del anexo fotográfico del informe.</Text>
+        <Text style={est.tenue}>Evidencia de control operacional, haya o no hallazgos. Sale al final del anexo fotográfico del informe.</Text>
         <FotosEvidencia fotos={ins.fotosVisita ?? []} onCambio={(c) => actualizar((x) => ({ ...x, fotosVisita: c(x.fotosVisita ?? []) }))} />
       </View>
 

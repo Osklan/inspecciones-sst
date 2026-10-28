@@ -69,7 +69,7 @@ export function evidenciasVisita(uris: string[] | undefined, desde: number, foto
   return (uris ?? []).map((uri, i) => ({
     n: desde + i + 1,
     b64: fotos[uri],
-    descripcion: `Registro fotográfico de la visita${lugar.trim() ? ` – ${esc(lugar.trim())}` : ""}.`,
+    descripcion: `Evidencia de control operacional${lugar.trim() ? ` – ${esc(lugar.trim())}` : ""}.`,
     fecha: fechaIso,
   }));
 }
