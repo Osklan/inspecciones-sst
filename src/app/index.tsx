@@ -80,7 +80,7 @@ export default function Lista() {
             )}
           </View>
         }
-        ListEmptyComponent={<Text style={[est.tenue, { textAlign: "center", marginTop: 24 }]}>Aún no hay inspecciones en este teléfono.</Text>}
+        ListEmptyComponent={<Text style={[est.tenue, { textAlign: "center", marginTop: 24 }]}>Aún no hay inspecciones en este equipo.</Text>}
         renderItem={({ item }) => {
           const r = resumen(item);
           const pct = r.cumplimiento === null ? "—" : `${Math.round(r.cumplimiento * 100)} %`;
