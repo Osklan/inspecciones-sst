@@ -2,47 +2,19 @@
 import { File, Paths } from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import { checklistEquiposHtml, checklistFrenteHtml, checklistLocativaHtml, nombreArchivoChecklist } from "@/domain/checklists";
-import { checklistBotiquinesHtml, informeBotiquinesHtml, nombreArchivoBotiquines } from "@/domain/informeBotiquines";
-import { informeFrenteHtml, nombreArchivoInforme } from "@/domain/informeFrente";
-import { informeEquiposHtml, nombreArchivoEquipos } from "@/domain/informeEquipos";
-import { informeLocativaHtml, nombreArchivoLocativa } from "@/domain/informeLocativa";
-import { fotosDe, type Inspeccion } from "@/domain/inspeccion";
-import { fotosEnBase64 } from "./fotos";
+import type { Inspeccion } from "@/domain/inspeccion";
+import { htmlDocumento, nombreArchivo, type Documento } from "./documentos";
 
-export type Documento = "informe" | "checklist";
+export type { Documento };
 
-function nombreArchivo(ins: Inspeccion): string {
-  switch (ins.tipo) {
-    case "botiquines": return nombreArchivoBotiquines(ins);
-    case "equipos": return nombreArchivoEquipos(ins);
-    case "locativas": return nombreArchivoLocativa(ins);
-    case "frentes": return nombreArchivoInforme(ins);
-  }
-}
+/** Solo en la web: pestaña donde se abrirá el documento, abierta al tocar el botón. */
+export type Destino = undefined;
+export const abrirDestino = (): Destino => undefined;
+export const cerrarDestino = (_d: Destino): void => {};
 
-async function html(ins: Inspeccion, doc: Documento): Promise<string> {
-  if (doc === "checklist") {
-    switch (ins.tipo) {
-      case "botiquines": return checklistBotiquinesHtml(ins);
-      case "equipos": return checklistEquiposHtml(ins);
-      case "locativas": return checklistLocativaHtml(ins);
-      case "frentes": return checklistFrenteHtml(ins);
-    }
-  }
-  const fotos = await fotosEnBase64(fotosDe(ins));
-  switch (ins.tipo) {
-    case "botiquines": return informeBotiquinesHtml(ins, fotos);
-    case "equipos": return informeEquiposHtml(ins, fotos);
-    case "locativas": return informeLocativaHtml(ins, fotos);
-    case "frentes": return informeFrenteHtml(ins, fotos);
-  }
-}
-
-export async function exportarPdf(ins: Inspeccion, doc: Documento = "informe"): Promise<string> {
-  const { uri } = await Print.printToFileAsync({ html: await html(ins, doc) });
-  const nombre = doc === "checklist" ? nombreArchivoChecklist(nombreArchivo(ins)) : nombreArchivo(ins);
-  const destino = new File(Paths.cache, nombre);
+export async function exportarPdf(ins: Inspeccion, doc: Documento = "informe", _destino?: Destino): Promise<string> {
+  const { uri } = await Print.printToFileAsync({ html: await htmlDocumento(ins, doc) });
+  const destino = new File(Paths.cache, nombreArchivo(ins, doc));
   if (destino.exists) destino.delete();
   await new File(uri).move(destino);
   if (await Sharing.isAvailableAsync()) {

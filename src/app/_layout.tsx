@@ -1,12 +1,11 @@
 import { Stack } from "expo-router";
-import { SQLiteProvider } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
-import { migrar } from "@/db/inspecciones";
+import { ProveedorBD } from "@/db/bd";
 import { color } from "@/ui/tema";
 
 export default function Layout() {
   return (
-    <SQLiteProvider databaseName="inspecciones.db" onInit={migrar}>
+    <ProveedorBD>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -23,6 +22,6 @@ export default function Layout() {
         <Stack.Screen name="equipos/[id]" options={{ title: "Equipos y EPP" }} />
         <Stack.Screen name="botiquin/[id]" options={{ title: "Botiquines" }} />
       </Stack>
-    </SQLiteProvider>
+    </ProveedorBD>
   );
 }

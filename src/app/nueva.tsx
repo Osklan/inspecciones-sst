@@ -1,6 +1,6 @@
 // Nueva inspección: tipo y encabezado. En frentes, también las actividades críticas en ejecución.
 import { router } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
+import { useBD } from "@/db/bd";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { CATEGORIAS_EQUIPOS } from "@/data/categoriasEquipos";
@@ -49,7 +49,7 @@ const fechaValida = (f: string) => /^\d{4}-\d{2}-\d{2}$/.test(f);
 const seleccion = (on: boolean) => on && { borderColor: color.azul, backgroundColor: color.tinte };
 
 export default function Nueva() {
-  const db = useSQLiteContext();
+  const db = useBD();
   const [tipo, setTipo] = useState<TipoInspeccion>("frentes");
   const [frente, setFrente] = useState<InspeccionFrente>(() => nuevaInspeccionFrente());
   const [locativa, setLocativa] = useState<InspeccionLocativa>(() => nuevaInspeccionLocativa());

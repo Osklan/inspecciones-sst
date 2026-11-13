@@ -1,8 +1,9 @@
 // Lista de inspecciones guardadas en el teléfono.
 import { router, useFocusEffect } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
+import { useBD } from "@/db/bd";
 import { useCallback, useState } from "react";
-import { Alert, FlatList, Image, Pressable, Text, View } from "react-native";
+import { FlatList, Image, Pressable, Text, View } from "react-native";
+import { Alert } from "@/ui/alerta";
 import { SST_FO_070 } from "@/data/sstFo070";
 import { bloquesActivos, calcularResultado, marcarNoAplica } from "@/domain/controlOperacional";
 import { ETIQUETA_TIPO, fotosDe, tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
@@ -36,7 +37,7 @@ function resumen(i: Inspeccion): { cumplimiento: number | null; pendientes: numb
 
 
 export default function Lista() {
-  const db = useSQLiteContext();
+  const db = useBD();
   const [items, setItems] = useState<Inspeccion[]>([]);
 
   useFocusEffect(useCallback(() => { listar(db).then(setItems); }, [db]));

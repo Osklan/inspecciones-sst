@@ -1,8 +1,9 @@
 // Inspección de botiquines (SST-FO-077): un botiquín a la vez, cantidad, estado y vencimiento por elemento.
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
+import { useBD } from "@/db/bd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert } from "@/ui/alerta";
 import { ELEMENTOS_BOTIQUIN } from "@/data/botiquin";
 import {
   calcularBotiquines,
@@ -29,7 +30,7 @@ const REGISTRO_VACIO: RegistroElemento = { cantidad: "", vence: "", observacion:
 
 export default function InspeccionBotiquinesPantalla() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const db = useSQLiteContext();
+  const db = useBD();
   const [ins, setIns] = useState<InspeccionBotiquines | null>(null);
   const [sel, setSel] = useState(0);
   const [firmando, setFirmando] = useState(false);

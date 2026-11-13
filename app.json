@@ -2,7 +2,7 @@
   "expo": {
     "name": "SST TRACK",
     "slug": "inspecciones-sst",
-    "version": "0.6.3",
+    "version": "0.7.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,10 +21,15 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "co.oinac.inspeccionessst",
-      "versionCode": 10
+      "versionCode": 11
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "name": "SST TRACK",
+      "shortName": "SST TRACK",
+      "themeColor": "#071421",
+      "backgroundColor": "#071421"
     },
     "plugins": [
       "expo-router",

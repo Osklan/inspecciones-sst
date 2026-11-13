@@ -1,8 +1,9 @@
 // Verificación en campo del SST-FO-070: un bloque a la vez, C / NC / NA por ítem.
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
+import { useBD } from "@/db/bd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert } from "@/ui/alerta";
 import type { Documento } from "@/media/exportar";
 import { FotosEvidencia } from "@/ui/FotosEvidencia";
 import { OpcionesRespuesta } from "@/ui/OpcionesRespuesta";
@@ -20,7 +21,7 @@ const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)} 
 
 export default function Verificacion() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const db = useSQLiteContext();
+  const db = useBD();
   const [ins, setIns] = useState<InspeccionFrente | null>(null);
   const [bloque, setBloque] = useState(0);
   const [firmando, setFirmando] = useState(false);

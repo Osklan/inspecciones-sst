@@ -1,8 +1,9 @@
 // Inspección de condiciones locativas: un punto a la vez (frente, sede), C / NC / NA por aspecto.
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
+import { useBD } from "@/db/bd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert } from "@/ui/alerta";
 import type { Documento } from "@/media/exportar";
 import { borrarFoto } from "@/media/fotos";
 import { tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
@@ -26,7 +27,7 @@ const TEXTOS_INFORME: [keyof Pick<InspeccionLocativa, "objetivo" | "resultados" 
 
 export default function InspeccionLocativaPantalla() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const db = useSQLiteContext();
+  const db = useBD();
   const [ins, setIns] = useState<InspeccionLocativa | null>(null);
   const [sel, setSel] = useState(0);
   const [firmando, setFirmando] = useState(false);

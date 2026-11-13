@@ -1,8 +1,9 @@
 // Inspección de herramientas, equipos y EPP: una categoría a la vez, Apto / No apto / En prueba por equipo.
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
+import { useBD } from "@/db/bd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert } from "@/ui/alerta";
 import type { CategoriaEquipo, FormatoTabla } from "@/data/categoriasEquipos";
 import type { Documento } from "@/media/exportar";
 import { borrarFoto } from "@/media/fotos";
@@ -51,7 +52,7 @@ const fondoResultado = (r: ResultadoEquipo) => (r === "Apto" ? color.verdeFondo 
 
 export default function InspeccionEquiposPantalla() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const db = useSQLiteContext();
+  const db = useBD();
   const [ins, setIns] = useState<InspeccionEquipos | null>(null);
   const [sel, setSel] = useState(0);
   const [abierto, setAbierto] = useState<string | null>(null);
