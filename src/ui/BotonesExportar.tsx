@@ -1,8 +1,9 @@
 // Botones para generar y compartir el informe y la lista de verificación en PDF.
 import { useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { Alert } from "@/ui/alerta";
 import type { Inspeccion } from "@/domain/inspeccion";
-import { exportarPdf, type Documento } from "@/media/exportar";
+import { abrirDestino, cerrarDestino, exportarPdf, type Documento } from "@/media/exportar";
 import { color, est } from "./tema";
 
 interface Props {
@@ -14,11 +15,15 @@ export function BotonesExportar({ preparar }: Props) {
   const [ocupado, setOcupado] = useState<Documento | null>(null);
 
   async function exportar(doc: Documento) {
+    // En la web la pestaña del documento se abre ya, mientras el toque cuenta como gesto del usuario.
+    const destino = abrirDestino();
     setOcupado(doc);
     try {
       const ins = await preparar(doc);
-      if (ins) await exportarPdf(ins, doc);
+      if (ins) await exportarPdf(ins, doc, destino);
+      else cerrarDestino(destino);
     } catch (e) {
+      cerrarDestino(destino);
       Alert.alert("No se pudo generar el PDF", String((e as Error).message ?? e));
     } finally {
       setOcupado(null);

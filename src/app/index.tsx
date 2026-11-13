@@ -1,8 +1,10 @@
 // Lista de inspecciones guardadas en el teléfono.
 import { router, useFocusEffect } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
+import { cerrarSesion } from "@/auth/Acceso";
+import { useBD } from "@/db/bd";
 import { useCallback, useState } from "react";
-import { Alert, FlatList, Image, Pressable, Text, View } from "react-native";
+import { FlatList, Image, Pressable, Text, View } from "react-native";
+import { Alert } from "@/ui/alerta";
 import { SST_FO_070 } from "@/data/sstFo070";
 import { bloquesActivos, calcularResultado, marcarNoAplica } from "@/domain/controlOperacional";
 import { ETIQUETA_TIPO, fotosDe, tituloInspeccion, type Inspeccion } from "@/domain/inspeccion";
@@ -36,7 +38,7 @@ function resumen(i: Inspeccion): { cumplimiento: number | null; pendientes: numb
 
 
 export default function Lista() {
-  const db = useSQLiteContext();
+  const db = useBD();
   const [items, setItems] = useState<Inspeccion[]>([]);
 
   useFocusEffect(useCallback(() => { listar(db).then(setItems); }, [db]));
@@ -68,8 +70,17 @@ export default function Lista() {
             </Pressable>
           </View>
         }
-        ListFooterComponent={items.length ? <Text style={[est.tenue, { textAlign: "center" }]}>Mantén presionada una inspección para borrarla.</Text> : undefined}
-        ListEmptyComponent={<Text style={[est.tenue, { textAlign: "center", marginTop: 24 }]}>Aún no hay inspecciones en este teléfono.</Text>}
+        ListFooterComponent={
+          <View style={{ gap: 12 }}>
+            {items.length > 0 && <Text style={[est.tenue, { textAlign: "center" }]}>Mantén presionada una inspección para borrarla.</Text>}
+            {cerrarSesion && (
+              <Pressable onPress={cerrarSesion}>
+                <Text style={[est.tenue, { textAlign: "center", textDecorationLine: "underline" }]}>Cerrar sesión</Text>
+              </Pressable>
+            )}
+          </View>
+        }
+        ListEmptyComponent={<Text style={[est.tenue, { textAlign: "center", marginTop: 24 }]}>Aún no hay inspecciones en este equipo.</Text>}
         renderItem={({ item }) => {
           const r = resumen(item);
           const pct = r.cumplimiento === null ? "—" : `${Math.round(r.cumplimiento * 100)} %`;

@@ -1,8 +1,9 @@
 // Inspección de botiquines (SST-FO-077): un botiquín a la vez, cantidad, estado y vencimiento por elemento.
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
+import { useBD } from "@/db/bd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert } from "@/ui/alerta";
 import { ELEMENTOS_BOTIQUIN } from "@/data/botiquin";
 import {
   calcularBotiquines,
@@ -29,7 +30,7 @@ const REGISTRO_VACIO: RegistroElemento = { cantidad: "", vence: "", observacion:
 
 export default function InspeccionBotiquinesPantalla() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const db = useSQLiteContext();
+  const db = useBD();
   const [ins, setIns] = useState<InspeccionBotiquines | null>(null);
   const [sel, setSel] = useState(0);
   const [firmando, setFirmando] = useState(false);
@@ -217,6 +218,12 @@ export default function InspeccionBotiquinesPantalla() {
       </View>
 
       <View style={est.tarjeta}>
+        <Text style={est.subtitulo}>Fotos de la visita</Text>
+        <Text style={est.tenue}>Evidencia de control operacional, haya o no hallazgos. Sale al final del anexo fotográfico del informe.</Text>
+        <FotosEvidencia fotos={ins.fotosVisita ?? []} onCambio={(c) => actualizar((x) => ({ ...x, fotosVisita: c(x.fotosVisita ?? []) }))} />
+      </View>
+
+      <View style={est.tarjeta}>
         <Text style={est.subtitulo}>Textos del informe</Text>
         {([["objetivo", "Objetivo", ""], ["conclusiones", "Conclusiones", "Una por línea."], ["recomendaciones", "Recomendaciones", "Una por línea."]] as const).map(([k, label, ayuda]) => (
           <View key={k} style={{ gap: 4 }}>
@@ -228,18 +235,11 @@ export default function InspeccionBotiquinesPantalla() {
       </View>
 
       <PanelFirma
-        titulo={`Elaboró – ${ins.encabezado.cargoElaboro}`}
+        titulo={`Inspeccionó – ${ins.encabezado.cargoElaboro}`}
         nombre={ins.encabezado.elaboradoPor}
         firma={ins.firmas?.elaboro}
         onFirmando={setFirmando}
         onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, elaboro: f } }))}
-      />
-      <PanelFirma
-        titulo={`Revisó – ${ins.encabezado.cargoReviso}`}
-        nombre={ins.encabezado.revisadoPor}
-        firma={ins.firmas?.reviso}
-        onFirmando={setFirmando}
-        onCambio={(f) => actualizar((x) => ({ ...x, firmas: { ...x.firmas, reviso: f } }))}
       />
 
       <BotonesExportar preparar={preparar} />

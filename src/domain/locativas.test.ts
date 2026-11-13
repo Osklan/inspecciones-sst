@@ -31,7 +31,7 @@ describe("condiciones locativas", () => {
 
   it("arma el informe con hallazgos, evidencias numeradas y normas", () => {
     const html = informeLocativaHtml(ejemplo(), { "file:///3.jpg": "QUJD" });
-    expect(html).toContain("INFORME DE INSPECCIÓN DE BAÑOS – FRENTES DE OBRA CCNC");
+    expect(html).toContain(">INFORME DE INSPECCIÓN DE BAÑOS</td>");
     expect(html).toContain("Octubre/2026");
     // Sin descripción escrita, el hallazgo lista los aspectos NC.
     expect(html).toContain("No cumple: Dotación de papel higiénico");

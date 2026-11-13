@@ -1,5 +1,6 @@
 // Fotos de evidencia de un hallazgo: miniaturas, botones de cámara y galería.
-import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert } from "@/ui/alerta";
 import { borrarFoto, tomarFoto } from "@/media/fotos";
 import { est } from "./tema";
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SST_FO_070 } from "../data/sstFo070";
 import { informeFrenteHtml, nombreArchivoInforme } from "./informeFrente";
-import { nuevaInspeccionFrente } from "./inspeccion";
+import { fotosDe, nuevaInspeccionFrente } from "./inspeccion";
 
 function ejemplo() {
   const i = nuevaInspeccionFrente(undefined, new Date(2026, 9, 19, 9, 30));
@@ -20,7 +20,7 @@ function ejemplo() {
 describe("informe del SST-FO-070", () => {
   it("incluye encabezado, resultado, NC con fecha límite y escapa el texto", () => {
     const html = informeFrenteHtml(ejemplo(), { "file:///a.jpg": "QUJD" });
-    expect(html).toContain("CONTROL OPERACIONAL DE CONTRATISTAS");
+    expect(html).toContain(">INFORME DE INSPECCIÓN DE FRENTES DE TRABAJO</td>");
     expect(html).toContain("Contratista LEGGO &lt;obra&gt;");
     expect(html).not.toContain("<obra>");
     expect(html).toContain("19/10/2026");
@@ -43,6 +43,24 @@ describe("informe del SST-FO-070", () => {
     expect(html).toContain("(Ver evidencias N° 1, 2)");
     expect(html).toContain("data:image/jpeg;base64,QUJD");
     expect(html).toContain("Foto no disponible");
+  });
+
+  it("anexa las fotos de la visita después de las de las NC, y también sin NC", () => {
+    const i = ejemplo();
+    i.encabezado.ubicacion = "Plataforma norte";
+    i.fotosVisita = ["file:///v1.jpg"];
+    expect(fotosDe(i)).toEqual(["file:///a.jpg", "file:///b.jpg", "file:///v1.jpg"]);
+    const html = informeFrenteHtml(i, { "file:///v1.jpg": "VklT" });
+    expect(html).toContain("EVIDENCIA N° 3");
+    expect(html).toContain("Evidencia de control operacional – Contratista LEGGO &lt;obra&gt;, Plataforma norte.");
+    expect(html).toContain("data:image/jpeg;base64,VklT");
+
+    const sinNc = nuevaInspeccionFrente(undefined, new Date(2026, 9, 19));
+    sinNc.respuestas = Object.fromEntries(SST_FO_070.flatMap((b) => b.items.map((it) => [it.codigo, { resultado: "C" as const }])));
+    sinNc.fotosVisita = ["file:///v2.jpg"];
+    const h2 = informeFrenteHtml(sinNc);
+    expect(h2).toContain("ANEXO – EVIDENCIA FOTOGRÁFICA");
+    expect(h2).toContain("EVIDENCIA N° 1");
   });
 
   it("incluye las firmas dibujadas", () => {

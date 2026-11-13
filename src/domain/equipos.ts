@@ -1,7 +1,7 @@
 // Inspección de herramientas, equipos y EPP (contra caídas, LOTO, equipos dieléctricos…).
 // Sigue los informes mensuales de OINAC: una sección por categoría, cada equipo con su
 // resultado Apto / No apto / En prueba, y los que no son aptos pasan a hallazgos.
-import { CATEGORIAS_EQUIPOS, type CategoriaEquipo } from "../data/categoriasEquipos";
+import { CATEGORIAS_EQUIPOS, type CategoriaEquipo, type TipoElemento } from "../data/categoriasEquipos";
 import type { Firma } from "./firma";
 import type { EncabezadoLocativa } from "./locativas";
 import type { RespuestaItem, ResultadoEquipo } from "./tipos";
@@ -24,6 +24,15 @@ export interface Equipo {
   componentes?: Record<number, boolean>;
   /** Lista de verificación: C / NC / NA por índice del aspecto de la categoría. */
   aspectos?: Record<number, RespuestaItem | undefined>;
+  /** Observación por aspecto (columna OBSERVACIONES de la ficha). */
+  obsAspectos?: Record<number, string>;
+  /** Id del elemento con ficha propia (arnés, eslinga…), en las categorías que la tienen. */
+  tipoElemento?: string;
+  /** Datos de la ficha: fecha de fabricación, número interno y lavados (AAAA-MM-DD). */
+  fabricacion?: string;
+  interno?: string;
+  ultimoLavado?: string;
+  proximoLavado?: string;
   resultado?: ResultadoEquipo;
   /** Para los equipos que no son aptos o están en prueba. */
   hallazgo: string;
@@ -63,6 +72,8 @@ export interface InspeccionEquipos {
   conclusiones: string;
   recomendaciones: string;
   firmas?: { elaboro?: Firma; reviso?: Firma };
+  /** Fotos de la visita, aunque no haya hallazgos; salen al final del anexo fotográfico. */
+  fotosVisita?: string[];
   firmantes?: Firmante[];
 }
 
@@ -89,6 +100,7 @@ export function copiarSecciones(anteriores: SeccionEquipos[], prefijoId: string)
       ...nuevoEquipo(`${prefijoId}-${++n}`, categoria(s.categoriaId)),
       titular: e.titular, elemento: e.elemento, marca: e.marca, serial: e.serial,
       fechaPrueba: e.fechaPrueba, codigoPrueba: e.codigoPrueba,
+      tipoElemento: e.tipoElemento, fabricacion: e.fabricacion, interno: e.interno,
     })),
   }));
 }
@@ -124,6 +136,47 @@ export function faltantes(e: Equipo, cat: CategoriaEquipo): string[] {
   return (cat.componentes ?? []).filter((_, i) => e.componentes?.[i] === false);
 }
 
+/** Elemento con ficha del equipo: el elegido o, si no, el que se deduce del nombre. */
+export function tipoDe(e: Pick<Equipo, "tipoElemento" | "elemento">, cat: CategoriaEquipo): TipoElemento | undefined {
+  const tipos = cat.tiposElemento;
+  if (!tipos?.length) return undefined;
+  const elegido = tipos.find((t) => t.id === e.tipoElemento);
+  if (elegido) return elegido;
+  const n = e.elemento.toLowerCase();
+  return (n.includes("eslinga") && n.includes("posicion") ? tipos.find((t) => t.id === "eslinga-posicionamiento") : undefined)
+    ?? (n.includes("eslinga") || n.includes("linea de vida") ? tipos.find((t) => t.id === "eslinga") : undefined)
+    ?? tipos[0];
+}
+
+export interface AspectoEquipo {
+  texto: string;
+  /** Parte del equipo a la que pertenece (solo en las fichas). */
+  parte?: string;
+  /** Respuesta SI/NO que indica buen estado (solo en las fichas); C = buen estado. */
+  bueno?: "SI" | "NO";
+}
+
+/** Aspectos que se verifican en el equipo: los de su ficha o, si no tiene, los de la categoría. */
+export function aspectosDe(e: Pick<Equipo, "tipoElemento" | "elemento">, cat: CategoriaEquipo): AspectoEquipo[] {
+  const t = tipoDe(e, cat);
+  return t ? t.partes.flatMap((p) => p.items.map((i) => ({ texto: i.texto, parte: p.nombre, bueno: i.bueno }))) : cat.aspectos.map((texto) => ({ texto }));
+}
+
+/** C/NC en la ficha → SI/NO según la redacción del ítem. */
+export function siNo(r: RespuestaItem | undefined, bueno: "SI" | "NO" = "SI"): "SI" | "NO" | "NA" | "" {
+  if (r === "NA") return "NA";
+  if (!r) return "";
+  const malo = bueno === "SI" ? "NO" : "SI";
+  return r === "C" ? bueno : malo;
+}
+
+/** Aspectos que no cumplen, como texto («Arnés – Costuras: Reventadas»). */
+export function aspectosNoConformes(e: Equipo, cat: CategoriaEquipo): string[] {
+  return aspectosDe(e, cat)
+    .map((a, i) => (e.aspectos?.[i] === "NC" ? `${a.parte ? `${a.parte}: ` : ""}${a.texto.replace(/\.$/, "")}` : ""))
+    .filter(Boolean);
+}
+
 export interface HallazgoEquipo {
   seccion: SeccionEquipos;
   equipo: Equipo;
@@ -157,7 +210,7 @@ export function calcularEquipos(ins: InspeccionEquipos): ResultadoEquipos {
         const falta = faltantes(e, cat);
         const auto = cat.formato === "kit" && falta.length
           ? `Al kit de ${e.titular || "un trabajador"} le faltan: ${falta.join(", ")}.`
-          : `${nombreEquipo(e) || "Equipo"}: ${e.condicion.trim() || e.resultado.toLowerCase()}.`;
+          : `${nombreEquipo(e) || "Equipo"}: ${e.condicion.trim() || aspectosNoConformes(e, cat).join("; ") || e.resultado.toLowerCase()}.`;
         hallazgos.push({ seccion: s, equipo: e, texto: e.hallazgo.trim() || auto });
       }
     }
@@ -199,8 +252,11 @@ export function firmantesDe(ins: InspeccionEquipos): Firmante[] {
 export function aspectosSinMarcar(ins: InspeccionEquipos): number {
   let n = 0;
   for (const s of ins.secciones) {
-    const total = categoria(s.categoriaId).aspectos.length;
-    for (const e of s.equipos) for (let i = 0; i < total; i++) if (!e.aspectos?.[i]) n++;
+    const cat = categoria(s.categoriaId);
+    for (const e of s.equipos) {
+      const total = aspectosDe(e, cat).length;
+      for (let i = 0; i < total; i++) if (!e.aspectos?.[i]) n++;
+    }
   }
   return n;
 }
