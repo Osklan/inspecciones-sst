@@ -1,5 +1,6 @@
 // Lista de inspecciones guardadas en el teléfono.
 import { router, useFocusEffect } from "expo-router";
+import { cerrarSesion } from "@/auth/Acceso";
 import { useBD } from "@/db/bd";
 import { useCallback, useState } from "react";
 import { FlatList, Image, Pressable, Text, View } from "react-native";
@@ -69,7 +70,16 @@ export default function Lista() {
             </Pressable>
           </View>
         }
-        ListFooterComponent={items.length ? <Text style={[est.tenue, { textAlign: "center" }]}>Mantén presionada una inspección para borrarla.</Text> : undefined}
+        ListFooterComponent={
+          <View style={{ gap: 12 }}>
+            {items.length > 0 && <Text style={[est.tenue, { textAlign: "center" }]}>Mantén presionada una inspección para borrarla.</Text>}
+            {cerrarSesion && (
+              <Pressable onPress={cerrarSesion}>
+                <Text style={[est.tenue, { textAlign: "center", textDecorationLine: "underline" }]}>Cerrar sesión</Text>
+              </Pressable>
+            )}
+          </View>
+        }
         ListEmptyComponent={<Text style={[est.tenue, { textAlign: "center", marginTop: 24 }]}>Aún no hay inspecciones en este teléfono.</Text>}
         renderItem={({ item }) => {
           const r = resumen(item);
